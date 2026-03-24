@@ -1,0 +1,1137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Resource Room Rewards</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet"/>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:#0d0d1a;font-family:'Nunito',sans-serif;color:#eee;min-height:100vh;}
+  ::-webkit-scrollbar{width:6px;}
+  ::-webkit-scrollbar-track{background:#1a1a2e;}
+  ::-webkit-scrollbar-thumb{background:#3a3a6a;border-radius:3px;}
+  canvas{position:fixed;top:0;left:0;pointer-events:none;z-index:9999;}
+
+  @keyframes fadeIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+  @keyframes shake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-10px)}40%,80%{transform:translateX(10px)}}
+  @keyframes glitch{0%,100%{transform:none}10%{transform:skewX(-2deg) translateX(2px)}20%{transform:skewX(2deg) translateX(-2px)}30%{transform:none}}
+  @keyframes pop{0%{transform:scale(1)}50%{transform:scale(1.18)}100%{transform:scale(1)}}
+  .shake{animation:shake .5s ease;}
+  .fadein{animation:fadeIn .35s ease;}
+
+  /* ── PIN SCREEN ── */
+  #pin-screen{
+    min-height:100vh;display:flex;align-items:center;justify-content:center;
+    background:radial-gradient(ellipse at center,#1a1a3e 0%,#0d0d1a 70%);
+  }
+  .pin-card{
+    background:#12122a;border:2px solid #2a2a5a;border-radius:20px;
+    padding:36px 32px;width:320px;text-align:center;
+    box-shadow:0 0 60px #0008,0 0 30px #bf5fff22;
+  }
+  .arcade-logo{
+    font-family:'Fredoka One',sans-serif;font-size:26px;color:#f7c948;
+    letter-spacing:2px;margin-bottom:4px;text-shadow:0 0 20px #f7c94866;
+    animation:glitch 4s infinite;
+  }
+  .pin-sub{font-family:'Fredoka One',sans-serif;font-size:13px;color:#bf5fff;letter-spacing:4px;margin-bottom:16px;}
+  .pin-label{font-family:'Fredoka One',sans-serif;font-size:13px;color:#666;letter-spacing:4px;margin-bottom:18px;}
+  .pin-dots{display:flex;justify-content:center;gap:12px;margin-bottom:8px;}
+  .pin-dot{width:18px;height:18px;border-radius:50%;border:2px solid #4a4a7a;transition:background .15s;}
+  .pin-dot.filled{background:#f7c948;}
+  .pin-hint{color:#ff6b6b;font-size:13px;height:22px;margin-bottom:4px;}
+  .pin-busy{color:#4ecdc4;font-size:13px;margin-bottom:8px;}
+  .numpad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:14px;}
+  .num-btn{
+    background:#1e1e3a;border:1px solid #3a3a6a;border-radius:10px;
+    color:#eee;font-family:'Fredoka One',sans-serif;font-size:22px;
+    padding:14px 0;cursor:pointer;transition:all .1s;
+  }
+  .num-btn:hover{filter:brightness(1.25);transform:scale(1.05);}
+  .num-btn:active{transform:scale(0.95);}
+  .pin-help{margin-top:18px;color:#444;font-size:11px;}
+
+  /* ── SHARED LAYOUT ── */
+  .screen{min-height:100vh;display:flex;flex-direction:column;max-width:680px;margin:0 auto;padding-bottom:40px;}
+  .top-bar{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:14px 16px;background:#12122a;border-bottom:1px solid #2a2a4a;
+    position:sticky;top:0;z-index:10;
+  }
+  .player-name{font-family:'Fredoka One',sans-serif;font-size:20px;letter-spacing:1px;}
+  .pts-badge{
+    display:flex;flex-direction:column;align-items:center;
+    background:#1e1e3a;border:1px solid #3a3a6a;border-radius:10px;padding:4px 14px;
+  }
+  .pts-num{color:#f7c948;font-size:24px;font-family:'Fredoka One',sans-serif;}
+  .pts-label{color:#aaa;font-size:11px;}
+  .exit-btn{
+    background:#1e1e3a;border:1px solid #ff6b6b66;border-radius:8px;
+    color:#ff6b6b;font-family:'Fredoka One',sans-serif;font-size:13px;
+    padding:6px 14px;cursor:pointer;
+  }
+  .exit-btn:hover{background:#ff6b6b22;}
+  .tab-bar{display:flex;background:#0f0f22;border-bottom:1px solid #2a2a4a;}
+  .tab-btn{
+    flex:1;background:transparent;border:none;color:#666;
+    font-family:'Fredoka One',sans-serif;font-size:14px;
+    padding:12px 8px;cursor:pointer;transition:color .2s;
+  }
+  .tab-btn.on{color:#f7c948;border-bottom:3px solid #f7c948;}
+  .body{padding:16px;display:flex;flex-direction:column;gap:14px;}
+
+  /* ── LEVEL CARD ── */
+  .level-card{background:#12122a;border:2px solid;border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:12px;}
+  .level-badge{display:inline-block;padding:4px 14px;border-radius:6px;font-family:'Fredoka One',sans-serif;font-size:14px;color:#1a1a2e;letter-spacing:2px;}
+  .prog-track{height:10px;background:#1e1e3a;border-radius:5px;overflow:hidden;margin-top:4px;}
+  .prog-fill{height:100%;border-radius:5px;transition:width .6s ease;}
+
+  /* ── STAT BOXES ── */
+  .stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .stat-box{background:#12122a;border:1px solid;border-radius:12px;padding:14px 10px;display:flex;flex-direction:column;align-items:center;gap:4px;}
+  .stat-val{font-family:'Fredoka One',sans-serif;font-size:22px;}
+  .stat-lbl{color:#777;font-size:10px;letter-spacing:1px;}
+
+  /* ── STORE ── */
+  .sub-tabs{display:flex;gap:8px;margin-bottom:4px;}
+  .sub-tab{
+    flex:1;background:transparent;border:1px solid #2a2a4a;border-radius:8px;
+    color:#666;font-family:'Fredoka One',sans-serif;font-size:13px;
+    padding:10px;cursor:pointer;transition:all .2s;
+  }
+  .sub-tab.on{background:#1e1e3a;color:#f7c948;border-color:#f7c94844;}
+  .coupon-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .coupon-card{
+    background:#12122a;border:1px solid #2a2a4a;border-radius:14px;
+    padding:14px;display:flex;flex-direction:column;align-items:center;
+    gap:6px;text-align:center;transition:opacity .2s;
+  }
+  .coupon-icon{font-size:34px;}
+  .coupon-name{font-family:'Fredoka One',sans-serif;font-size:13px;color:#eee;}
+  .coupon-desc{font-size:11px;color:#666;line-height:1.4;}
+  .coupon-cost{color:#f7c948;font-family:'Fredoka One',sans-serif;font-size:14px;}
+  .buy-btn{
+    width:100%;border:none;border-radius:8px;padding:8px 0;
+    font-family:'Fredoka One',sans-serif;font-size:13px;cursor:pointer;
+    letter-spacing:1px;margin-top:4px;transition:all .15s;
+  }
+  .buy-btn:hover{filter:brightness(1.1);}
+
+  /* ── TEACHER ── */
+  .student-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px;}
+  .stu-chip{
+    background:#12122a;border:2px solid #333;border-radius:10px;
+    padding:8px 6px;display:flex;flex-direction:column;align-items:center;
+    gap:3px;cursor:pointer;transition:all .2s;
+  }
+  .stu-chip:hover{border-color:#555;}
+  .stu-chip.selected{animation:pop .2s ease;}
+  .stu-name{color:#eee;font-size:13px;}
+  .stu-pts{font-family:'Fredoka One',sans-serif;font-size:12px;}
+  .action-card{background:#12122a;border:1px solid #2a2a4a;border-radius:14px;padding:16px;margin-top:4px;}
+  .sec-label{font-family:'Fredoka One',sans-serif;font-size:13px;color:#888;letter-spacing:2px;margin-bottom:10px;}
+  .award-btns{display:flex;flex-wrap:wrap;gap:10px;}
+  .award-btn{
+    background:linear-gradient(135deg,#f7c948,#ff9f43);border:none;border-radius:10px;
+    color:#1a1a2e;font-family:'Fredoka One',sans-serif;font-size:18px;
+    padding:12px 20px;cursor:pointer;box-shadow:0 4px 15px #f7c94833;
+  }
+  .award-btn:hover{filter:brightness(1.1);transform:translateY(-1px);}
+  .deduct-btn{
+    background:#1e1e3a;border:2px solid #ff6b6b55;border-radius:10px;
+    color:#ff6b6b;font-family:'Fredoka One',sans-serif;font-size:14px;
+    padding:10px 16px;cursor:pointer;
+  }
+  .deduct-btn:hover{background:#ff6b6b11;}
+  .roster-row{
+    background:#12122a;border-radius:10px;padding:12px 14px;
+    display:flex;align-items:center;gap:10px;margin-bottom:6px;
+    border-left:4px solid #333;
+  }
+  .flash-msg{
+    background:#f7c94822;border:1px solid #f7c94844;border-radius:8px;
+    padding:8px 12px;color:#f7c948;font-size:13px;margin-bottom:10px;
+  }
+  .flash-msg.bad{background:#ff6b6b22;border-color:#ff6b6b44;color:#ff6b6b;}
+
+  /* ── TOAST ── */
+  #toast{
+    position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
+    background:#1e1e3a;border:1px solid #4a4a7a;border-radius:12px;
+    padding:12px 24px;font-family:'Fredoka One',sans-serif;font-size:15px;
+    color:#f7c948;z-index:9998;box-shadow:0 4px 30px #0008;
+    white-space:nowrap;display:none;animation:fadeIn .3s ease;
+  }
+  .goal-card{background:#12122a;border:1px solid #4ecdc444;border-radius:12px;padding:14px;}
+  .loading{color:#555;text-align:center;padding:40px;font-size:16px;}
+</style>
+</head>
+<body>
+
+<canvas id="confetti-canvas"></canvas>
+<div id="toast"></div>
+
+<!-- ═══════════════════════════════════════════════════
+     PIN SCREEN
+════════════════════════════════════════════════════ -->
+<div id="pin-screen">
+  <div class="pin-card" id="pin-card">
+    <div class="arcade-logo">🎮 RESOURCE ROOM</div>
+    <div class="pin-sub">REWARDS HQ</div>
+    <div class="pin-label">ENTER YOUR PIN</div>
+    <div class="pin-dots">
+      <div class="pin-dot" id="d0"></div>
+      <div class="pin-dot" id="d1"></div>
+      <div class="pin-dot" id="d2"></div>
+      <div class="pin-dot" id="d3"></div>
+    </div>
+    <div class="pin-hint" id="pin-hint"></div>
+    <div class="pin-busy" id="pin-busy" style="display:none">Checking…</div>
+    <div class="numpad">
+      <button class="num-btn" onclick="press('1')">1</button>
+      <button class="num-btn" onclick="press('2')">2</button>
+      <button class="num-btn" onclick="press('3')">3</button>
+      <button class="num-btn" onclick="press('4')">4</button>
+      <button class="num-btn" onclick="press('5')">5</button>
+      <button class="num-btn" onclick="press('6')">6</button>
+      <button class="num-btn" onclick="press('7')">7</button>
+      <button class="num-btn" onclick="press('8')">8</button>
+      <button class="num-btn" onclick="press('9')">9</button>
+      <button class="num-btn" style="opacity:0" disabled></button>
+      <button class="num-btn" onclick="press('0')">0</button>
+      <button class="num-btn" onclick="backspace()">⌫</button>
+    </div>
+    <div class="pin-help">Enter your 4-digit code to begin</div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════
+     STUDENT DASHBOARD
+════════════════════════════════════════════════════ -->
+<div id="student-screen" style="display:none">
+  <div class="screen">
+    <div class="top-bar">
+      <div style="display:flex;align-items:center;gap:10px">
+        <span id="s-emoji" style="font-size:22px"></span>
+        <span id="s-name" class="player-name"></span>
+      </div>
+      <div class="pts-badge">
+        <span id="s-points" class="pts-num">0</span>
+        <span class="pts-label">PTS</span>
+      </div>
+      <button class="exit-btn" onclick="logout()">EXIT</button>
+    </div>
+    <div class="tab-bar">
+      <button class="tab-btn on" id="st-tab-dash" onclick="stuTab('dash')">📊 MY STATS</button>
+      <button class="tab-btn" id="st-tab-store" onclick="stuTab('store')">🛒 STORE</button>
+      <button class="tab-btn" id="st-tab-goals" onclick="stuTab('goals')">🎯 MY GOALS</button>
+    </div>
+
+    <!-- DASHBOARD TAB -->
+    <div id="stu-dash" class="body fadein">
+      <div class="level-card" id="s-level-card">
+        <div style="display:flex;align-items:center;gap:14px">
+          <span id="s-lvl-emoji" style="font-size:52px"></span>
+          <div>
+            <div class="level-badge" id="s-lvl-badge"></div>
+            <div id="s-lvl-next" style="color:#bbb;font-size:13px;margin-top:6px"></div>
+          </div>
+        </div>
+        <div class="prog-track"><div class="prog-fill" id="s-prog"></div></div>
+      </div>
+      <div class="stats-grid">
+        <div class="stat-box" style="border-color:#f7c94844">
+          <span style="font-size:24px">⭐</span>
+          <span class="stat-val" id="s-stat-pts" style="color:#f7c948">0</span>
+          <span class="stat-lbl">TOTAL POINTS</span>
+        </div>
+        <div class="stat-box" style="border-color:#4ecdc444">
+          <span style="font-size:24px">📅</span>
+          <span class="stat-val" id="s-stat-wk" style="color:#4ecdc4">0</span>
+          <span class="stat-lbl">SESSIONS/WEEK</span>
+        </div>
+        <div class="stat-box" style="border-color:#ff6b6b44">
+          <span style="font-size:24px">🏆</span>
+          <span class="stat-val" id="s-stat-total" style="color:#ff6b6b">0</span>
+          <span class="stat-lbl">ALL-TIME SESSIONS</span>
+        </div>
+        <div class="stat-box" style="border-color:#bf5fff44">
+          <span style="font-size:24px">🎯</span>
+          <span class="stat-val" id="s-stat-area" style="color:#bf5fff;font-size:14px">—</span>
+          <span class="stat-lbl">GOAL AREA</span>
+        </div>
+      </div>
+      <div class="goal-card" id="s-goal-card" style="display:none">
+        <div style="color:#888;font-size:11px;letter-spacing:2px;margin-bottom:6px">MY CURRENT GOAL</div>
+        <div id="s-goal-text" style="color:#eee;font-size:15px"></div>
+      </div>
+    </div>
+
+    <!-- STORE TAB -->
+    <div id="stu-store" class="body fadein" style="display:none">
+      <div class="sub-tabs">
+        <button class="sub-tab on" id="store-solo-btn" onclick="storeTab('solo')">🎒 SOLO REWARDS</button>
+        <button class="sub-tab" id="store-class-btn" onclick="storeTab('class')">🏫 CLASS REWARDS</button>
+      </div>
+      <div class="coupon-grid" id="solo-coupons"></div>
+      <div class="coupon-grid" id="class-coupons" style="display:none"></div>
+    </div>
+
+    <!-- GOALS TAB -->
+    <div id="stu-goals" class="body fadein" style="display:none">
+      <div id="stu-goals-list"><div class="loading">Loading your goals…</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════
+     TEACHER PANEL
+════════════════════════════════════════════════════ -->
+<div id="teacher-screen" style="display:none">
+  <div class="screen">
+    <div class="top-bar">
+      <div style="font-family:'Fredoka One',sans-serif;color:#ff6b6b;font-size:20px">👨‍🏫 TEACHER PANEL</div>
+      <button class="exit-btn" onclick="logout()">EXIT</button>
+    </div>
+    <div class="tab-bar">
+      <button class="tab-btn on" id="t-tab-award" onclick="teacherTab('award')">⭐ AWARD</button>
+      <button class="tab-btn" id="t-tab-deduct" onclick="teacherTab('deduct')">⚠️ D-RULES</button>
+      <button class="tab-btn" id="t-tab-roster" onclick="teacherTab('roster')">📋 ROSTER</button>
+      <button class="tab-btn" id="t-tab-redeem" onclick="teacherTab('redeem')" style="position:relative">
+        🎟 REDEEMED
+        <span id="redeem-badge" style="display:none;position:absolute;top:4px;right:4px;width:8px;height:8px;border-radius:50%;background:#ff6b6b;box-shadow:0 0 6px #ff6b6b"></span>
+      </button>
+      <button class="tab-btn" id="t-tab-goals" onclick="teacherTab('goals')">🎯 GOALS</button>
+    </div>
+
+    <!-- AWARD / DEDUCT TABS -->
+    <div id="t-award-panel" class="body fadein">
+      <div class="sec-label">SELECT STUDENT</div>
+      <div class="student-grid" id="t-student-grid"></div>
+      <div id="t-award-action" style="display:none">
+        <div class="flash-msg" id="t-flash" style="display:none"></div>
+        <div class="action-card" id="t-award-card" style="display:none">
+          <div class="sec-label" id="t-award-label"></div>
+          <div class="award-btns">
+            <button class="award-btn" onclick="teacherAward(10)">+10</button>
+            <button class="award-btn" onclick="teacherAward(25)">+25</button>
+            <button class="award-btn" onclick="teacherAward(50)">+50</button>
+            <button class="award-btn" onclick="teacherAward(100)">+100</button>
+            <button class="award-btn" onclick="teacherAward(500)">+500</button>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:10px;align-items:center">
+            <input type="number" id="custom-award-amt" placeholder="Custom pts" min="1"
+              style="flex:1;background:#1e1e3a;border:1px solid #3a3a6a;border-radius:8px;padding:8px 10px;color:#eee;font-family:'Nunito',sans-serif;font-size:14px;outline:none"/>
+            <button onclick="teacherAwardCustom()" style="background:linear-gradient(135deg,#f7c948,#ff9f43);border:none;border-radius:8px;padding:9px 16px;color:#1a1a2e;font-family:'Fredoka One',sans-serif;font-size:15px;cursor:pointer">Award</button>
+          </div>
+          <input type="text" id="award-comment" placeholder="Optional comment (e.g. Helped a classmate)" 
+            style="width:100%;margin-top:8px;background:#1e1e3a;border:1px solid #3a3a6a;border-radius:8px;padding:8px 10px;color:#eee;font-family:'Nunito',sans-serif;font-size:13px;outline:none"/>
+        </div>
+        <div class="action-card" id="t-deduct-card" style="display:none">
+          <div class="sec-label" id="t-deduct-label"></div>
+          <div class="award-btns">
+            <button class="deduct-btn" onclick="teacherDeduct('Disrespect',20)">😤 Disrespect (-20)</button>
+            <button class="deduct-btn" onclick="teacherDeduct('Disruption',20)">📢 Disruption (-20)</button>
+            <button class="deduct-btn" onclick="teacherDeduct('Defiance',20)">🙅 Defiance (-20)</button>
+            <button class="deduct-btn" onclick="teacherDeduct('Dishonesty',20)">🤥 Dishonesty (-20)</button>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:10px;align-items:center">
+            <select id="deduct-rule" style="flex:2;background:#1e1e3a;border:1px solid #3a3a6a;border-radius:8px;padding:8px 10px;color:#eee;font-family:'Nunito',sans-serif;font-size:13px;outline:none">
+              <option>Disrespect</option><option>Disruption</option><option>Defiance</option><option>Dishonesty</option><option>Other</option>
+            </select>
+            <input type="number" id="custom-deduct-amt" placeholder="Pts" min="1" value="20"
+              style="width:70px;background:#1e1e3a;border:1px solid #3a3a6a;border-radius:8px;padding:8px 10px;color:#eee;font-family:'Nunito',sans-serif;font-size:14px;outline:none;text-align:center"/>
+            <button onclick="teacherDeductCustom()" style="background:#ff6b6b33;border:2px solid #ff6b6b55;border-radius:8px;padding:9px 14px;color:#ff6b6b;font-family:'Fredoka One',sans-serif;font-size:14px;cursor:pointer">Deduct</button>
+          </div>
+          <input type="text" id="deduct-comment" placeholder="Optional comment about this deduction"
+            style="width:100%;margin-top:8px;background:#1e1e3a;border:1px solid #3a3a6a;border-radius:8px;padding:8px 10px;color:#eee;font-family:'Nunito',sans-serif;font-size:13px;outline:none"/>
+        </div>
+      </div>
+    </div>
+
+    <!-- ROSTER TAB -->
+    <div id="t-roster-panel" class="body fadein" style="display:none">
+      <div class="sec-label">📋 ROSTER — SORTED BY POINTS</div>
+      <div id="t-roster-list"></div>
+    </div>
+
+    <!-- GOALS TAB -->
+    <div id="t-goals-panel" class="body fadein" style="display:none">
+      <div class="sec-label">🎯 SET GOAL FOR SELECTED STUDENTS</div>
+
+      <!-- Goal input -->
+      <div style="background:#12122a;border:1px solid #2a2a4a;border-radius:14px;padding:16px;margin-bottom:12px">
+        <div style="font-size:11px;color:#888;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px">Goal Text</div>
+        <textarea id="bulk-goal-text" rows="3" placeholder="Type the goal here…"
+          style="width:100%;background:#1e1e3a;border:1px solid #3a3a6a;border-radius:8px;padding:10px;color:#eee;font-family:'Nunito',sans-serif;font-size:13px;resize:none;outline:none;line-height:1.5"
+          onfocus="this.style.borderColor='#f7c948'" onblur="this.style.borderColor='#3a3a6a'"></textarea>
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <div style="flex:1">
+            <div style="font-size:11px;color:#888;letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">Goal Area</div>
+            <input id="bulk-goal-area" placeholder="e.g. Organization, Focus…"
+              style="width:100%;background:#1e1e3a;border:1px solid #3a3a6a;border-radius:8px;padding:8px 10px;color:#eee;font-family:'Nunito',sans-serif;font-size:13px;outline:none"
+              onfocus="this.style.borderColor='#f7c948'" onblur="this.style.borderColor='#3a3a6a'"/>
+          </div>
+          <div style="flex:1">
+            <div style="font-size:11px;color:#888;letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">Month</div>
+            <input id="bulk-goal-month" placeholder="e.g. April 2026"
+              style="width:100%;background:#1e1e3a;border:1px solid #3a3a6a;border-radius:8px;padding:8px 10px;color:#eee;font-family:'Nunito',sans-serif;font-size:13px;outline:none"
+              onfocus="this.style.borderColor='#f7c948'" onblur="this.style.borderColor='#3a3a6a'"/>
+          </div>
+        </div>
+      </div>
+
+      <!-- Select students -->
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <div style="font-size:11px;color:#888;letter-spacing:1px;text-transform:uppercase">Select Students</div>
+        <div style="display:flex;gap:6px">
+          <button onclick="selectAllGoalStudents(true)"
+            style="background:none;border:1px solid #3a3a6a;border-radius:6px;padding:3px 10px;color:#aaa;font-family:'Fredoka One',sans-serif;font-size:11px;cursor:pointer">All</button>
+          <button onclick="selectAllGoalStudents(false)"
+            style="background:none;border:1px solid #3a3a6a;border-radius:6px;padding:3px 10px;color:#aaa;font-family:'Fredoka One',sans-serif;font-size:11px;cursor:pointer">None</button>
+        </div>
+      </div>
+      <div id="goal-student-checkboxes" style="display:flex;flex-direction:column;gap:6px;margin-bottom:14px"></div>
+
+      <!-- Apply button -->
+      <button onclick="applyBulkGoal()"
+        style="width:100%;background:linear-gradient(135deg,#f7c948,#ff9f43);border:none;border-radius:12px;padding:14px;color:#1a1a2e;font-family:'Fredoka One',sans-serif;font-size:16px;cursor:pointer;letter-spacing:1px">
+        Set Goal for Selected Students
+      </button>
+      <div id="bulk-goal-msg" style="margin-top:10px;text-align:center;font-family:'Fredoka One',sans-serif;font-size:13px;min-height:20px"></div>
+    </div>
+
+    <!-- REDEMPTIONS TAB -->
+    <div id="t-redeem-panel" class="body fadein" style="display:none">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+        <div class="sec-label" style="margin-bottom:0">🎟 REDEMPTION FEED</div>
+        <button onclick="loadRedemptions()" style="background:none;border:1px solid #3a3a6a;border-radius:8px;padding:4px 12px;color:#888;font-family:'Fredoka One',sans-serif;font-size:12px;cursor:pointer">↻ Refresh</button>
+      </div>
+      <div style="display:flex;gap:8px;margin-bottom:12px">
+        <button class="sub-tab on" id="redeem-filter-all" onclick="setRedeemFilter('all')" style="flex:1;background:transparent;border:1px solid #2a2a4a;border-radius:8px;color:#f7c948;font-family:'Fredoka One',sans-serif;font-size:12px;padding:7px;cursor:pointer">All Time</button>
+        <button class="sub-tab" id="redeem-filter-today" onclick="setRedeemFilter('today')" style="flex:1;background:transparent;border:1px solid #2a2a4a;border-radius:8px;color:#666;font-family:'Fredoka One',sans-serif;font-size:12px;padding:7px;cursor:pointer">Today</button>
+        <button class="sub-tab" id="redeem-filter-week" onclick="setRedeemFilter('week')" style="flex:1;background:transparent;border:1px solid #2a2a4a;border-radius:8px;color:#666;font-family:'Fredoka One',sans-serif;font-size:12px;padding:7px;cursor:pointer">This Week</button>
+      </div>
+      <div id="t-redeem-list"><div class="loading">Loading…</div></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════
+// CONFIG — update these to match your Airtable
+// ══════════════════════════════════════════════════
+const AIRTABLE_API_KEY   = 'patdfJBFQVg5XN3LJ.04e6fd40ac74ab54a9d705d2736462a9d5d1494306a74ddbe7a6a317cf17175c';
+const AIRTABLE_BASE_ID   = 'app3QC7PF5zYG1mLH';
+const STUDENTS_TABLE     = 'Students';
+const TRANSACTIONS_TABLE = 'Transactions';
+const COUPONS_TABLE      = 'Coupons';
+const REDEMPTIONS_TABLE  = 'Redemptions';
+const GOAL_HISTORY_TABLE = 'Goal History';
+const TEACHER_PIN        = '9999';
+const CHECKIN_POINTS     = 10;
+
+// ══════════════════════════════════════════════════
+// LEVELS
+// ══════════════════════════════════════════════════
+const LEVELS = [
+  { name:'Rookie',      min:0,    color:'#7c7c7c', glow:'#aaa',     emoji:'🌱' },
+  { name:'Rising Star', min:100,  color:'#4ecdc4', glow:'#4ecdc4',  emoji:'⭐' },
+  { name:'All-Star',    min:300,  color:'#f7c948', glow:'#f7c948',  emoji:'🌟' },
+  { name:'Elite',       min:600,  color:'#ff6b6b', glow:'#ff6b6b',  emoji:'🔥' },
+  { name:'Legend',      min:1000, color:'#bf5fff', glow:'#bf5fff',  emoji:'👑' },
+];
+function getLevel(pts){ return [...LEVELS].reverse().find(l=>pts>=l.min)||LEVELS[0]; }
+function getNextLevel(pts){ return LEVELS.find(l=>l.min>pts); }
+
+// ══════════════════════════════════════════════════
+// AIRTABLE API HELPERS
+// ══════════════════════════════════════════════════
+const AT_BASE = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}`;
+const AT_HEADERS = { 'Authorization': `Bearer ${AIRTABLE_API_KEY}`, 'Content-Type': 'application/json' };
+
+async function atGet(table, filter=''){
+  const url = `${AT_BASE}/${encodeURIComponent(table)}` + (filter ? `?filterByFormula=${encodeURIComponent(filter)}` : '');
+  const r = await fetch(url, { headers: AT_HEADERS });
+  return r.json();
+}
+async function atPatch(table, id, fields){
+  const r = await fetch(`${AT_BASE}/${encodeURIComponent(table)}/${id}`, {
+    method:'PATCH', headers:AT_HEADERS, body:JSON.stringify({fields})
+  });
+  return r.json();
+}
+async function atCreate(table, fields){
+  const r = await fetch(`${AT_BASE}/${encodeURIComponent(table)}`, {
+    method:'POST', headers:AT_HEADERS, body:JSON.stringify({fields})
+  });
+  return r.json();
+}
+
+// ══════════════════════════════════════════════════
+// APP STATE
+// ══════════════════════════════════════════════════
+let pinInput = '';
+let currentSession = null; // { role, student } or { role:'teacher' }
+let allStudents = [];
+let allCoupons  = [];
+let selectedStudentId = null;
+let currentTeacherTab = 'award';
+
+// ══════════════════════════════════════════════════
+// CONFETTI
+// ══════════════════════════════════════════════════
+function fireConfetti(){
+  const canvas = document.getElementById('confetti-canvas');
+  const ctx = canvas.getContext('2d');
+  canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+  const colors = ['#ff6b6b','#f7c948','#4ecdc4','#bf5fff','#ff9f43','#54a0ff'];
+  let parts = Array.from({length:200}, ()=>({
+    x:Math.random()*canvas.width, y:-10, r:Math.random()*9+4,
+    color:colors[Math.floor(Math.random()*colors.length)],
+    vx:(Math.random()-.5)*7, vy:Math.random()*4+2,
+    rot:Math.random()*360, rotV:(Math.random()-.5)*8,
+    shape:Math.random()>.5?'rect':'circle'
+  }));
+  function draw(){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    parts.forEach(p=>{
+      ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.rot*Math.PI/180); ctx.fillStyle=p.color;
+      if(p.shape==='rect') ctx.fillRect(-p.r/2,-p.r/2,p.r,p.r*.6);
+      else{ ctx.beginPath(); ctx.arc(0,0,p.r/2,0,Math.PI*2); ctx.fill(); }
+      ctx.restore();
+      p.x+=p.vx; p.y+=p.vy; p.vy+=.07; p.rot+=p.rotV;
+    });
+    parts = parts.filter(p=>p.y<canvas.height+20);
+    if(parts.length>0) requestAnimationFrame(draw);
+    else ctx.clearRect(0,0,canvas.width,canvas.height);
+  }
+  requestAnimationFrame(draw);
+}
+
+// ══════════════════════════════════════════════════
+// TOAST
+// ══════════════════════════════════════════════════
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.style.display='block';
+  clearTimeout(t._t);
+  t._t = setTimeout(()=>t.style.display='none', 3000);
+}
+
+// ══════════════════════════════════════════════════
+// PIN PAD
+// ══════════════════════════════════════════════════
+function press(d){
+  if(pinInput.length>=4) return;
+  pinInput += d;
+  updateDots();
+  if(pinInput.length===4) setTimeout(submitPin, 100);
+}
+function backspace(){ pinInput=pinInput.slice(0,-1); updateDots(); }
+function updateDots(){
+  for(let i=0;i<4;i++){
+    document.getElementById('d'+i).classList.toggle('filled', i<pinInput.length);
+  }
+}
+async function submitPin(){
+  const pin = pinInput;
+  document.getElementById('pin-busy').style.display='block';
+
+  if(pin === TEACHER_PIN){
+    document.getElementById('pin-busy').style.display='none';
+    await loadAllStudents();
+    await loadAllCoupons();
+    showTeacher();
+    checkRedeemBadge();
+    return;
+  }
+
+  // Look up student by PIN in Airtable
+  try{
+    const data = await atGet(STUDENTS_TABLE, `{PIN}="${pin}"`);
+    document.getElementById('pin-busy').style.display='none';
+    if(data.records && data.records.length>0){
+      const rec = data.records[0];
+      const f = rec.fields;
+      currentSession = {
+        role:'student',
+        student:{
+          id: rec.id,
+          name: f['Name']||'Student',
+          studentId: f['Student ID']||'',
+          goal: f['Goal']||'',
+          goalArea: f['Goal Area']||'',
+          points: f['Points']||0,
+          sessionsThisWeek: f['Sessions This Week']||0,
+          totalSessions: f['Total Sessions']||0,
+        }
+      };
+      await loadAllCoupons();
+      showStudent();
+    } else {
+      badPin();
+    }
+  } catch(e){
+    document.getElementById('pin-busy').style.display='none';
+    badPin();
+  }
+}
+function badPin(){
+  document.getElementById('pin-hint').textContent='Wrong PIN — try again';
+  document.getElementById('pin-card').classList.add('shake');
+  setTimeout(()=>{
+    document.getElementById('pin-card').classList.remove('shake');
+    document.getElementById('pin-hint').textContent='';
+    pinInput=''; updateDots();
+  }, 750);
+}
+
+// ══════════════════════════════════════════════════
+// AIRTABLE DATA LOADERS
+// ══════════════════════════════════════════════════
+async function loadAllStudents(){
+  const data = await atGet(STUDENTS_TABLE);
+  allStudents = (data.records||[]).map(rec=>({
+    id: rec.id,
+    name: rec.fields['Name']||'',
+    studentId: rec.fields['Student ID']||'',
+    goal: rec.fields['Goal']||'',
+    goalArea: rec.fields['Goal Area']||'',
+    points: rec.fields['Points']||0,
+    sessionsThisWeek: rec.fields['Sessions This Week']||0,
+    totalSessions: rec.fields['Total Sessions']||0,
+    pin: rec.fields['PIN']||'',
+  }));
+}
+async function loadAllCoupons(){
+  const data = await atGet(COUPONS_TABLE, '{Active}=TRUE()');
+  allCoupons = (data.records||[]).map(rec=>({
+    id: rec.id,
+    name: rec.fields['Name']||'',
+    cost: rec.fields['Cost']||0,
+    icon: rec.fields['Icon']||'🎟',
+    desc: rec.fields['Description']||'',
+    type: rec.fields['Type']||'Solo',
+  }));
+}
+
+// ══════════════════════════════════════════════════
+// SHOW SCREENS
+// ══════════════════════════════════════════════════
+function showStudent(){
+  document.getElementById('pin-screen').style.display='none';
+  document.getElementById('teacher-screen').style.display='none';
+  document.getElementById('student-screen').style.display='block';
+  renderStudentDash();
+  renderStore();
+}
+function showTeacher(){
+  document.getElementById('pin-screen').style.display='none';
+  document.getElementById('student-screen').style.display='none';
+  document.getElementById('teacher-screen').style.display='block';
+  renderStudentGrid();
+  renderRoster();
+}
+function logout(){
+  pinInput=''; updateDots(); currentSession=null; selectedStudentId=null;
+  document.getElementById('student-screen').style.display='none';
+  document.getElementById('teacher-screen').style.display='none';
+  document.getElementById('pin-screen').style.display='flex';
+}
+
+// ══════════════════════════════════════════════════
+// STUDENT DASHBOARD RENDERING
+// ══════════════════════════════════════════════════
+function renderStudentDash(){
+  const s = currentSession.student;
+  const lvl = getLevel(s.points);
+  const nxt = getNextLevel(s.points);
+  const prog = nxt ? ((s.points-lvl.min)/(nxt.min-lvl.min))*100 : 100;
+
+  document.getElementById('s-emoji').textContent = lvl.emoji;
+  document.getElementById('s-name').textContent = s.name;
+  document.getElementById('s-name').style.color = lvl.color;
+  document.getElementById('s-points').textContent = s.points;
+  document.getElementById('s-stat-pts').textContent = s.points;
+  document.getElementById('s-stat-wk').textContent = s.sessionsThisWeek;
+  document.getElementById('s-stat-total').textContent = s.totalSessions;
+  document.getElementById('s-stat-area').textContent = s.goalArea||'—';
+  document.getElementById('s-lvl-emoji').textContent = lvl.emoji;
+  document.getElementById('s-lvl-badge').textContent = lvl.name.toUpperCase();
+  document.getElementById('s-lvl-badge').style.background = lvl.color;
+  document.getElementById('s-lvl-next').textContent = nxt ? `${nxt.min-s.points} pts to ${nxt.name}` : '⚡ MAX LEVEL!';
+  document.getElementById('s-level-card').style.borderColor = lvl.glow;
+  document.getElementById('s-level-card').style.boxShadow = `0 0 20px ${lvl.glow}44`;
+  const fill = document.getElementById('s-prog');
+  fill.style.width = Math.min(100,prog)+'%';
+  fill.style.background = lvl.color;
+  fill.style.boxShadow = `0 0 10px ${lvl.glow}`;
+
+  if(s.goal){
+    document.getElementById('s-goal-text').textContent = s.goal;
+    document.getElementById('s-goal-card').style.display='block';
+  }
+}
+
+function stuTab(t){
+  document.getElementById('stu-dash').style.display   = t==='dash'  ? 'flex' : 'none';
+  document.getElementById('stu-store').style.display  = t==='store' ? 'flex' : 'none';
+  document.getElementById('stu-goals').style.display  = t==='goals' ? 'flex' : 'none';
+  document.getElementById('st-tab-dash').classList.toggle('on',   t==='dash');
+  document.getElementById('st-tab-store').classList.toggle('on',  t==='store');
+  document.getElementById('st-tab-goals').classList.toggle('on',  t==='goals');
+  if (t === 'goals') loadStudentGoalHistory();
+}
+
+// ══════════════════════════════════════════════════
+// STORE RENDERING
+// ══════════════════════════════════════════════════
+function renderStore(){
+  const pts = currentSession.student.points;
+  renderCouponList('solo-coupons',  allCoupons.filter(c=>c.type==='Solo'),  pts);
+  renderCouponList('class-coupons', allCoupons.filter(c=>c.type==='Class'), pts);
+}
+function renderCouponList(containerId, coupons, pts){
+  const el = document.getElementById(containerId);
+  if(coupons.length===0){ el.innerHTML='<div class="loading">No rewards available yet</div>'; return; }
+  el.innerHTML = coupons.map(c=>{
+    const can = pts >= c.cost;
+    return `
+      <div class="coupon-card" style="opacity:${can?1:.55}">
+        <div class="coupon-icon">${c.icon}</div>
+        <div class="coupon-name">${c.name}</div>
+        <div class="coupon-desc">${c.desc}</div>
+        <div class="coupon-cost">⭐ ${c.cost} pts</div>
+        <button class="buy-btn" id="buy-${c.id}"
+          style="background:${can?'#f7c948':'#444'};color:${can?'#1a1a2e':'#888'}"
+          onclick="redeemCoupon('${c.id}','${c.name.replace(/'/g,"\\'")}',${c.cost})"
+        >${can?'REDEEM':'LOCKED'}</button>
+      </div>`;
+  }).join('');
+}
+function storeTab(t){
+  document.getElementById('solo-coupons').style.display  = t==='solo'  ? 'grid' : 'none';
+  document.getElementById('class-coupons').style.display = t==='class' ? 'grid' : 'none';
+  document.getElementById('store-solo-btn').classList.toggle('on',  t==='solo');
+  document.getElementById('store-class-btn').classList.toggle('on', t==='class');
+}
+async function redeemCoupon(couponId, couponName, couponCost){
+  const s = currentSession.student;
+  if(s.points < couponCost){ showToast('Not enough points!'); return; }
+  const btn = document.getElementById('buy-'+couponId);
+  if(btn) btn.textContent='…';
+
+  // Deduct points in Airtable
+  const newPts = s.points - couponCost;
+  await atPatch(STUDENTS_TABLE, s.id, { Points: newPts });
+  // Log to Transactions
+  await atCreate(TRANSACTIONS_TABLE, {
+    'Student ID': s.studentId, 'Student Name': s.name,
+    'Points Awarded': -couponCost, 'Type': 'Redemption',
+    'Note': 'Redeemed: '+couponName, 'Date': today()
+  });
+  // Log to Redemptions table
+  await atCreate(REDEMPTIONS_TABLE, {
+    'Student ID': s.studentId, 'Student Name': s.name,
+    'Reward Name': couponName, 'Points Spent': couponCost, 'Date': today()
+  });
+
+  currentSession.student.points = newPts;
+  renderStudentDash();
+  renderStore();
+  showToast('🎟 '+couponName+' redeemed!');
+  fireConfetti();
+}
+
+// ══════════════════════════════════════════════════
+// TEACHER PANEL
+// ══════════════════════════════════════════════════
+function teacherTab(t){
+  currentTeacherTab = t;
+  document.getElementById('t-award-panel').style.display  = (t==='award'||t==='deduct') ? 'flex' : 'none';
+  document.getElementById('t-roster-panel').style.display = t==='roster'  ? 'flex' : 'none';
+  document.getElementById('t-redeem-panel').style.display = t==='redeem'  ? 'flex' : 'none';
+  document.getElementById('t-goals-panel').style.display  = t==='goals'   ? 'flex' : 'none';
+  document.getElementById('t-tab-award').classList.toggle('on',  t==='award');
+  document.getElementById('t-tab-deduct').classList.toggle('on', t==='deduct');
+  document.getElementById('t-tab-roster').classList.toggle('on', t==='roster');
+  document.getElementById('t-tab-redeem').classList.toggle('on', t==='redeem');
+  document.getElementById('t-tab-goals').classList.toggle('on',  t==='goals');
+  // Show/hide award vs deduct cards
+  const showAward  = t==='award'  && selectedStudentId;
+  const showDeduct = t==='deduct' && selectedStudentId;
+  const el = document.getElementById('t-award-action');
+  el.style.display = (showAward||showDeduct) ? 'block' : 'none';
+  document.getElementById('t-award-card').style.display  = showAward  ? 'block' : 'none';
+  document.getElementById('t-deduct-card').style.display = showDeduct ? 'block' : 'none';
+  document.getElementById('t-flash').style.display = 'none';
+  if(t==='roster') renderRoster();
+  if(t==='redeem') loadRedemptions();
+  if(t==='goals')  renderGoalStudentList();
+}
+function renderStudentGrid(){
+  const grid = document.getElementById('t-student-grid');
+  grid.innerHTML = allStudents.sort((a,b)=>a.name.localeCompare(b.name)).map(s=>{
+    const l = getLevel(s.points);
+    const isSel = s.id===selectedStudentId;
+    return `
+      <button class="stu-chip${isSel?' selected':''}"
+        style="border-color:${isSel?l.color:'#333'};box-shadow:${isSel?'0 0 14px '+l.color+'88':'none'}"
+        onclick="selectStudent('${s.id}')">
+        <span style="font-size:18px">${l.emoji}</span>
+        <span class="stu-name">${s.name}</span>
+        <span class="stu-pts" style="color:${l.color}">${s.points}</span>
+      </button>`;
+  }).join('');
+}
+function selectStudent(id){
+  selectedStudentId = id;
+  const s = allStudents.find(x=>x.id===id);
+  const l = getLevel(s.points);
+  renderStudentGrid();
+  const t = currentTeacherTab;
+  document.getElementById('t-award-action').style.display='block';
+  document.getElementById('t-award-card').style.display  = t==='award'  ? 'block':'none';
+  document.getElementById('t-deduct-card').style.display = t==='deduct' ? 'block':'none';
+  document.getElementById('t-award-label').textContent  = '⭐ AWARD POINTS TO '+s.name.toUpperCase();
+  document.getElementById('t-deduct-label').textContent = '⚠️ D-RULES FOR '+s.name.toUpperCase();
+  document.getElementById('t-flash').style.display='none';
+}
+async function teacherAward(pts, commentOverride){
+  if(!selectedStudentId) return;
+  const s = allStudents.find(x=>x.id===selectedStudentId);
+  const comment = commentOverride || document.getElementById('award-comment')?.value?.trim() || 'Teacher award';
+  const oldLevel = getLevel(s.points).name;
+  const newPts = s.points + pts;
+  await atPatch(STUDENTS_TABLE, s.id, { Points: newPts });
+  await atCreate(TRANSACTIONS_TABLE, {
+    'Student ID': s.studentId, 'Student Name': s.name,
+    'Points Awarded': pts, 'Type': 'Award',
+    'Note': comment, 'Date': today()
+  });
+  s.points = newPts;
+  const newLevel = getLevel(newPts).name;
+  if(newLevel !== oldLevel || pts >= 100) fireConfetti();
+  renderStudentGrid();
+  if(document.getElementById('award-comment')) document.getElementById('award-comment').value='';
+  const flash = document.getElementById('t-flash');
+  flash.textContent = `⭐ +${pts} pts → ${s.name}! (Total: ${newPts})${comment && comment!=='Teacher award' ? ' — '+comment : ''}`;
+  flash.className='flash-msg'; flash.style.display='block';
+  showToast(`⭐ +${pts} → ${s.name}`);
+}
+
+async function teacherAwardCustom(){
+  const amt = parseInt(document.getElementById('custom-award-amt')?.value);
+  if(!amt || amt <= 0){ showToast('Enter a valid amount'); return; }
+  document.getElementById('custom-award-amt').value='';
+  await teacherAward(amt);
+}
+async function teacherDeduct(ruleName, pts=20, comment=''){
+  if(!selectedStudentId) return;
+  const s = allStudents.find(x=>x.id===selectedStudentId);
+  const fullNote = comment ? `${ruleName} — ${comment}` : ruleName;
+  const newPts = Math.max(0, s.points - pts);
+  await atPatch(STUDENTS_TABLE, s.id, { Points: newPts });
+  await atCreate(TRANSACTIONS_TABLE, {
+    'Student ID': s.studentId, 'Student Name': s.name,
+    'Points Awarded': -pts, 'Type': 'Deduction',
+    'Note': fullNote, 'Date': today()
+  });
+  s.points = newPts;
+  renderStudentGrid();
+  const flash = document.getElementById('t-flash');
+  flash.textContent = `⚠️ ${ruleName} — ${pts} pts removed. New total: ${newPts}${comment ? ' — '+comment : ''}`;
+  flash.className='flash-msg bad'; flash.style.display='block';
+  showToast(`⚠️ ${ruleName} (-${pts}) → ${s.name}`);
+}
+
+async function teacherDeductCustom(){
+  const rule    = document.getElementById('deduct-rule')?.value || 'Other';
+  const amt     = parseInt(document.getElementById('custom-deduct-amt')?.value) || 20;
+  const comment = document.getElementById('deduct-comment')?.value?.trim() || '';
+  if(document.getElementById('deduct-comment')) document.getElementById('deduct-comment').value='';
+  await teacherDeduct(rule, amt, comment);
+}
+function renderRoster(){
+  const list = document.getElementById('t-roster-list');
+  const sorted = [...allStudents].sort((a,b)=>b.points-a.points);
+  list.innerHTML = sorted.map((s,i)=>{
+    const l = getLevel(s.points);
+    const n = getNextLevel(s.points);
+    const p = n ? ((s.points-l.min)/(n.min-l.min))*100 : 100;
+    return `
+      <div class="roster-row" style="border-left-color:${l.color}">
+        <span style="color:#666;font-size:14px;width:24px">#${i+1}</span>
+        <span style="font-size:20px">${l.emoji}</span>
+        <div style="flex:1">
+          <div style="font-family:'Fredoka One',sans-serif;color:#eee;font-size:15px">${s.name}</div>
+          <div class="prog-track">
+            <div class="prog-fill" style="width:${Math.min(100,p)}%;background:${l.color}"></div>
+          </div>
+        </div>
+        <div style="text-align:right">
+          <div style="color:${l.color};font-family:'Fredoka One',sans-serif;font-size:18px">${s.points}</div>
+          <div style="color:#555;font-size:10px">${l.name}</div>
+        </div>
+        <div style="color:#555;font-size:11px;width:55px;text-align:center">${s.sessionsThisWeek}/wk</div>
+      </div>`;
+  }).join('');
+}
+function today(){ return new Date().toISOString().split('T')[0]; }
+
+// ══════════════════════════════════════════════════
+// BULK GOAL SETTER
+// ══════════════════════════════════════════════════
+function renderGoalStudentList() {
+  const container = document.getElementById('goal-student-checkboxes');
+  if (!allStudents.length) { container.innerHTML = '<div class="loading">No students loaded.</div>'; return; }
+
+  // Auto-fill month field if empty
+  const monthInput = document.getElementById('bulk-goal-month');
+  if (monthInput && !monthInput.value) {
+    monthInput.value = new Date().toLocaleString('en-US', { month:'long', year:'numeric' });
+  }
+
+  const sorted = [...allStudents].sort((a,b) => a.name.localeCompare(b.name));
+  container.innerHTML = sorted.map(s => {
+    const lvl = getLevel(s.points);
+    const currentGoal = s.goal || '';
+    return `
+      <label style="display:flex;align-items:center;gap:10px;background:#12122a;border:1px solid #2a2a4a;border-radius:10px;padding:10px 12px;cursor:pointer;transition:border-color .15s"
+        onmouseover="this.style.borderColor='#f7c94866'" onmouseout="this.style.borderColor='#2a2a4a'">
+        <input type="checkbox" id="gc-${s.id}" value="${s.id}"
+          style="width:16px;height:16px;accent-color:#f7c948;cursor:pointer;flex-shrink:0"/>
+        <span style="font-size:18px">${lvl.emoji}</span>
+        <div style="flex:1;min-width:0">
+          <div style="font-family:'Fredoka One',sans-serif;font-size:14px;color:#eee">${s.name}</div>
+          ${currentGoal
+            ? `<div style="font-size:11px;color:#666;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Current: ${currentGoal}</div>`
+            : `<div style="font-size:11px;color:#444;margin-top:1px">No goal set</div>`
+          }
+        </div>
+      </label>`;
+  }).join('');
+}
+
+function selectAllGoalStudents(checked) {
+  document.querySelectorAll('#goal-student-checkboxes input[type="checkbox"]')
+    .forEach(cb => cb.checked = checked);
+}
+
+async function applyBulkGoal() {
+  const goalText = document.getElementById('bulk-goal-text').value.trim();
+  const goalArea = document.getElementById('bulk-goal-area').value.trim();
+  const month    = document.getElementById('bulk-goal-month').value.trim();
+  const msg      = document.getElementById('bulk-goal-msg');
+
+  if (!goalText) { msg.textContent = 'Please enter a goal.'; msg.style.color='#ff6b6b'; return; }
+  if (!month)    { msg.textContent = 'Please enter a month (e.g. April 2026).'; msg.style.color='#ff6b6b'; return; }
+
+  const selected = [...document.querySelectorAll('#goal-student-checkboxes input[type="checkbox"]:checked')]
+    .map(cb => cb.value);
+
+  if (!selected.length) { msg.textContent = 'Select at least one student.'; msg.style.color='#ff6b6b'; return; }
+
+  msg.textContent = `Updating ${selected.length} student${selected.length!==1?'s':''}…`;
+  msg.style.color = '#4ecdc4';
+
+  let done = 0, errors = 0;
+  const dateStr = today();
+
+  for (const sid of selected) {
+    const s = allStudents.find(x => x.id === sid);
+    if (!s) continue;
+    try {
+      // Update Students table
+      const fields = { 'Goal': goalText };
+      if (goalArea) fields['Goal Area'] = goalArea;
+      await atPatch(STUDENTS_TABLE, s.id, fields);
+      s.goal = goalText;
+
+      // Write Goal History record
+      await atCreate(GOAL_HISTORY_TABLE, {
+        'Student ID':  s.studentId,
+        'Goal':        goalText,
+        'Goal Area':   goalArea || '',
+        'Month':       month,
+        'Status':      'Active',
+        'Date Set':    dateStr,
+      });
+      done++;
+      msg.textContent = `Saving… ${done}/${selected.length}`;
+    } catch(e) {
+      console.error('Failed for', s.name, e);
+      errors++;
+    }
+  }
+
+  if (errors === 0) {
+    msg.textContent = `✓ Goal set for ${done} student${done!==1?'s':''}!`;
+    msg.style.color = '#45e5b0';
+    // Refresh the student list to show updated goals
+    renderGoalStudentList();
+  } else {
+    msg.textContent = `Done — ${done} updated, ${errors} failed. Check console.`;
+    msg.style.color = '#f7c948';
+  }
+}
+
+// ══════════════════════════════════════════════════
+// REDEMPTIONS FEED
+// ══════════════════════════════════════════════════
+let allRedemptions = [];
+let redeemFilter = 'all';
+
+async function loadRedemptions() {
+  const list = document.getElementById('t-redeem-list');
+  list.innerHTML = '<div class="loading">Loading…</div>';
+  try {
+    const data = await atGet(REDEMPTIONS_TABLE);
+    allRedemptions = (data.records || []).sort((a,b) =>
+      new Date(b.fields['Date'] || 0) - new Date(a.fields['Date'] || 0)
+    );
+    // Check for today's redemptions — show dot badge on tab
+    const todayStr = today();
+    const todayCount = allRedemptions.filter(r => r.fields['Date'] === todayStr).length;
+    const badge = document.getElementById('redeem-badge');
+    if (badge) badge.style.display = todayCount > 0 ? 'block' : 'none';
+    renderRedemptions();
+  } catch(e) {
+    list.innerHTML = '<div class="loading">Could not load redemptions.</div>';
+  }
+}
+
+function setRedeemFilter(f) {
+  redeemFilter = f;
+  ['all','today','week'].forEach(x => {
+    const btn = document.getElementById('redeem-filter-'+x);
+    if (btn) {
+      btn.style.color  = x === f ? '#f7c948' : '#666';
+      btn.style.borderColor = x === f ? '#f7c94844' : '#2a2a4a';
+      btn.style.background  = x === f ? '#f7c94811' : 'transparent';
+    }
+  });
+  renderRedemptions();
+}
+
+function renderRedemptions() {
+  const list = document.getElementById('t-redeem-list');
+  const todayStr = today();
+  const weekAgo = new Date(); weekAgo.setDate(weekAgo.getDate() - 7);
+
+  let filtered = allRedemptions;
+  if (redeemFilter === 'today') {
+    filtered = allRedemptions.filter(r => r.fields['Date'] === todayStr);
+  } else if (redeemFilter === 'week') {
+    filtered = allRedemptions.filter(r => {
+      const d = new Date((r.fields['Date'] || '2000-01-01') + 'T12:00:00');
+      return d >= weekAgo;
+    });
+  }
+
+  if (!filtered.length) {
+    const msg = redeemFilter === 'today'
+      ? 'No redemptions today yet — students are still saving! 🐷'
+      : redeemFilter === 'week' ? 'No redemptions this week.'
+      : 'No redemptions yet — students are saving up!';
+    list.innerHTML = `<div class="loading">${msg}</div>`;
+    return;
+  }
+
+  // Group by date
+  const byDate = {};
+  filtered.forEach(r => {
+    const d = r.fields['Date'] || 'Unknown';
+    if (!byDate[d]) byDate[d] = [];
+    byDate[d].push(r.fields);
+  });
+
+  list.innerHTML = Object.entries(byDate).map(([date, items]) => {
+    const isToday = date === todayStr;
+    const label = isToday ? 'Today' : new Date(date + 'T12:00:00').toLocaleDateString('en-US', {
+      weekday:'short', month:'short', day:'numeric'
+    });
+    return `
+      <div style="margin-bottom:16px">
+        <div style="font-family:'Fredoka One',sans-serif;font-size:12px;color:${isToday?'#f7c948':'#666'};letter-spacing:2px;margin-bottom:8px;display:flex;align-items:center;gap:8px">
+          ${label.toUpperCase()}
+          <span style="background:${isToday?'#f7c94822':'#1e1e3a'};color:${isToday?'#f7c948':'#666'};border-radius:20px;padding:1px 8px;font-size:11px">${items.length} redemption${items.length!==1?'s':''}</span>
+        </div>
+        ${items.map(r => {
+          const stuRec = allStudents.find(s => s.studentId === r['Student ID']);
+          const lvl    = stuRec ? getLevel(stuRec.points) : null;
+          return `
+          <div style="background:#12122a;border:1px solid #2a2a4a;border-radius:12px;padding:12px 14px;margin-bottom:6px;display:flex;align-items:center;gap:12px;border-left:3px solid #f7c948">
+            <span style="font-size:22px">${lvl ? lvl.emoji : '🎟'}</span>
+            <div style="flex:1;min-width:0">
+              <div style="font-family:'Fredoka One',sans-serif;font-size:14px;color:#eee">${r['Student Name'] || '—'}</div>
+              <div style="font-size:12px;color:#888;margin-top:2px">redeemed <span style="color:#f7c948;font-weight:700">${r['Reward Name'] || '—'}</span></div>
+            </div>
+            <div style="text-align:right;flex-shrink:0">
+              <div style="font-family:'Fredoka One',sans-serif;font-size:16px;color:#ff6b6b">-${r['Points Spent'] || 0}</div>
+              <div style="font-size:10px;color:#555">pts</div>
+            </div>
+          </div>`;
+        }).join('')}
+      </div>`;
+  }).join('');
+}
+
+// Auto-check for today's redemptions when teacher panel loads
+async function checkRedeemBadge() {
+  try {
+    const todayStr = today();
+    const data = await atGet(REDEMPTIONS_TABLE, `{Date}="${todayStr}"`);
+    const count = (data.records || []).length;
+    const badge = document.getElementById('redeem-badge');
+    if (badge) badge.style.display = count > 0 ? 'block' : 'none';
+  } catch(e) { /* silent fail */ }
+}
+
+
+// ── Student Goal History (rewards site) ───────────────────────────
+async function loadStudentGoalHistory(){
+  const s = currentSession.student;
+  const list = document.getElementById('stu-goals-list');
+  list.innerHTML = '<div class="loading">Loading…</div>';
+  try {
+    const data = await atGet(GOAL_HISTORY_TABLE, `{Student ID}="${s.studentId}"`);
+    const recs = (data.records || []).sort((a,b)=>
+      new Date(b.fields['Date Set']||0) - new Date(a.fields['Date Set']||0)
+    );
+    if (!recs.length) {
+      list.innerHTML = '<div class="loading">No goal history yet!</div>';
+      return;
+    }
+    const byMonth = {};
+    recs.forEach(r=>{
+      const m = r.fields['Month'] || 'Unknown';
+      if(!byMonth[m]) byMonth[m]=[];
+      byMonth[m].push(r.fields);
+    });
+    list.innerHTML = Object.entries(byMonth).map(([month, goals])=>`
+      <div style="margin-bottom:16px">
+        <div style="font-family:'Fredoka One',sans-serif;font-size:13px;color:#888;letter-spacing:2px;margin-bottom:8px">${month.toUpperCase()}</div>
+        ${goals.map(g=>{
+          const mastered = g['Status']==='Mastered';
+          const active   = g['Status']==='Active';
+          return `<div style="background:#12122a;border:1px solid ${mastered?'#45e5b0':active?'#bf5fff':'#2a2a4a'};border-radius:12px;padding:14px;margin-bottom:8px">
+            ${mastered?'<div style="color:#45e5b0;font-size:11px;font-weight:800;letter-spacing:1px;margin-bottom:6px">🏆 MASTERED</div>':''}
+            ${active?'<div style="color:#bf5fff;font-size:11px;font-weight:800;letter-spacing:1px;margin-bottom:6px">● ACTIVE GOAL</div>':''}
+            ${g['Goal Area']?`<div style="display:inline-block;background:#bf5fff22;color:#bf5fff;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;padding:2px 8px;border-radius:20px;margin-bottom:6px">${g['Goal Area']}</div>`:''}
+            <div style="color:#eee;font-size:14px;line-height:1.5">${g['Goal']||''}</div>
+            ${g['Date Mastered']?`<div style="font-size:11px;color:#666;margin-top:6px">Mastered ${new Date(g['Date Mastered']+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}</div>`:''}
+          </div>`;
+        }).join('')}
+      </div>
+    `).join('');
+  } catch(e){
+    list.innerHTML = '<div class="loading">Could not load goal history.</div>';
+  }
+}
+
+</script>
+</body>
+</html>
