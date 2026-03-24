@@ -1,0 +1,1071 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Goal Check-In</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0d0f1a;
+  --surface: #161827;
+  --surface2: #1e2035;
+  --border: #2a2d48;
+  --accent: #7c6aff;
+  --accent2: #ff6a9e;
+  --accent3: #45e5b0;
+  --accent4: #ffd166;
+  --text: #f0f0ff;
+  --muted: #6b7099;
+  --muted2: #9095c0;
+  --r: 16px;
+  --r2: 20px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  font-family:'Outfit',sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  min-height:100vh;
+  display:flex;align-items:center;justify-content:center;
+  overflow-x:hidden;
+}
+body::before{
+  content:'';position:fixed;inset:0;z-index:0;
+  background-image:
+    linear-gradient(rgba(124,106,255,.035) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(124,106,255,.035) 1px,transparent 1px);
+  background-size:44px 44px;pointer-events:none;
+}
+body::after{
+  content:'';position:fixed;top:-20%;left:-10%;
+  width:60%;height:60%;border-radius:50%;
+  background:radial-gradient(ellipse,rgba(124,106,255,.06) 0%,transparent 70%);
+  pointer-events:none;z-index:0;
+}
+.screen{display:none;width:100%;max-width:460px;padding:24px;position:relative;z-index:1;flex-direction:column;align-items:center}
+.screen.active{display:flex}
+#screen-teacher{max-width:640px}
+#screen-teacher-detail{max-width:520px}
+
+/* ── PIN ── */
+.logo-wrap{text-align:center;margin-bottom:36px}
+.logo-icon{font-size:3.2rem;display:block;margin-bottom:10px;filter:drop-shadow(0 0 24px rgba(124,106,255,.7));animation:float 3s ease-in-out infinite}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+.logo-text{font-size:2rem;font-weight:900;letter-spacing:-.5px;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.logo-sub{color:var(--muted2);font-size:.9rem;font-weight:500;margin-top:6px}
+.pin-dots{display:flex;gap:16px;margin-bottom:32px}
+.pin-dot{width:18px;height:18px;border-radius:50%;border:2px solid var(--border);background:transparent;transition:all .2s}
+.pin-dot.filled{background:var(--accent);border-color:var(--accent);box-shadow:0 0 14px rgba(124,106,255,.8)}
+.numpad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;width:100%;max-width:290px}
+.nk{height:70px;border-radius:14px;border:1.5px solid var(--border);background:var(--surface);font-family:'Outfit',sans-serif;font-size:1.6rem;font-weight:700;color:var(--text);cursor:pointer;transition:all .12s;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px}
+.nk:hover{border-color:rgba(124,106,255,.5);background:var(--surface2);transform:translateY(-2px)}
+.nk:active{transform:scale(.93)}
+.nk-sub{font-size:.45rem;font-weight:600;color:var(--muted);letter-spacing:1.5px}
+.nk.del{color:var(--accent2)}
+.nk.go{background:linear-gradient(135deg,var(--accent),#5a4fd6);border-color:transparent;color:white;font-size:1.4rem;box-shadow:0 4px 20px rgba(124,106,255,.4)}
+.nk.go:hover{box-shadow:0 6px 30px rgba(124,106,255,.65);transform:translateY(-3px)}
+.pin-error{margin-top:16px;color:var(--accent2);font-size:.85rem;font-weight:600;min-height:20px;text-align:center}
+.teacher-btn{margin-top:28px;background:none;border:1.5px solid var(--border);border-radius:12px;padding:10px 22px;font-family:'Outfit',sans-serif;font-weight:600;font-size:.85rem;color:var(--muted2);cursor:pointer;transition:all .2s}
+.teacher-btn:hover{border-color:var(--accent);color:var(--accent)}
+
+/* ── DASHBOARD ── */
+.dash-header{width:100%;display:flex;align-items:center;gap:12px;margin-bottom:22px}
+.back-btn{width:38px;height:38px;border-radius:10px;border:1.5px solid var(--border);background:var(--surface);color:var(--muted2);font-size:1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .18s;flex-shrink:0}
+.back-btn:hover{border-color:var(--accent);color:var(--accent)}
+.student-greeting{flex:1;font-size:1.1rem;font-weight:700}
+.student-greeting span{background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.stats-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;width:100%;margin-bottom:14px}
+.stat-card{background:var(--surface);border:1.5px solid var(--border);border-radius:var(--r2);padding:16px 14px;transition:transform .18s}
+.stat-card:hover{transform:translateY(-2px)}
+.stat-label{font-size:.65rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:1.2px;margin-bottom:4px}
+.stat-val{font-size:2rem;font-weight:900;letter-spacing:-1px;line-height:1}
+.stat-sub{font-size:.7rem;color:var(--muted2);font-weight:500;margin-top:3px}
+.sv-streak{background:linear-gradient(135deg,var(--accent4),#ffad33);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.sv-count{color:var(--accent3)}
+.sv-avg{color:var(--accent)}
+.sv-today{color:var(--accent2)}
+.chart-wrap{width:100%;background:var(--surface);border:1.5px solid var(--border);border-radius:var(--r2);padding:18px;margin-bottom:14px}
+.chart-title{font-size:.65rem;font-weight:800;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:14px}
+.chart-canvas-wrap{position:relative;width:100%;height:90px}
+.chart-empty{color:var(--muted);font-size:.82rem;text-align:center;padding:24px 0;display:none}
+.goal-card{width:100%;background:var(--surface);border:1.5px solid var(--border);border-radius:var(--r2);padding:20px;margin-bottom:14px}
+.goal-area-tag{display:inline-block;background:rgba(124,106,255,.15);color:var(--accent);font-size:.65rem;font-weight:800;text-transform:uppercase;letter-spacing:1.2px;padding:3px 10px;border-radius:20px;margin-bottom:10px}
+.goal-text{font-size:.95rem;font-weight:500;color:var(--text);line-height:1.55;margin-bottom:16px}
+.rating-prompt{font-size:.68rem;font-weight:800;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:10px}
+.rating-row{display:flex;gap:8px;width:100%}
+.rb{flex:1;height:64px;border-radius:14px;border:1.5px solid var(--border);background:var(--surface2);cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;transition:all .15s;font-family:'Outfit',sans-serif}
+.rb:hover{transform:translateY(-3px);border-color:rgba(124,106,255,.4)}
+.rb .ri{font-size:1.4rem}
+.rb .rl{font-size:.6rem;font-weight:700;color:var(--muted);text-align:center;line-height:1.2;max-width:56px}
+.rb.s1{background:rgba(255,75,75,.12);border-color:#ff4b4b;box-shadow:0 0 14px rgba(255,75,75,.18)}
+.rb.s1 .rl{color:#ff4b4b}
+.rb.s2{background:rgba(255,160,0,.12);border-color:#ffa000;box-shadow:0 0 14px rgba(255,160,0,.18)}
+.rb.s2 .rl{color:#ffa000}
+.rb.s3{background:rgba(255,209,102,.12);border-color:var(--accent4);box-shadow:0 0 14px rgba(255,209,102,.18)}
+.rb.s3 .rl{color:var(--accent4)}
+.rb.s4{background:rgba(69,229,176,.12);border-color:var(--accent3);box-shadow:0 0 14px rgba(69,229,176,.18)}
+.rb.s4 .rl{color:var(--accent3)}
+.submit-btn{width:100%;height:58px;border-radius:16px;border:none;background:linear-gradient(135deg,var(--accent),#5a4fd6);color:white;font-family:'Outfit',sans-serif;font-weight:800;font-size:1.05rem;cursor:pointer;box-shadow:0 6px 24px rgba(124,106,255,.4);transition:all .2s}
+.submit-btn:hover:not(:disabled){transform:translateY(-3px);box-shadow:0 10px 32px rgba(124,106,255,.6)}
+.submit-btn:disabled{background:var(--surface2);color:var(--muted);box-shadow:none;cursor:not-allowed}
+
+/* ── SUCCESS ── */
+#screen-success{text-align:center;gap:12px}
+.suc-icon{font-size:5rem;animation:pop .5s ease;display:block}
+@keyframes pop{0%{transform:scale(0) rotate(-15deg)}70%{transform:scale(1.2) rotate(5deg)}100%{transform:scale(1) rotate(0)}}
+.suc-h{font-size:2rem;font-weight:900;background:linear-gradient(135deg,var(--accent3),var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.suc-p{color:var(--muted2);font-size:.95rem;font-weight:500;line-height:1.6;margin-bottom:10px}
+.done-btn{background:linear-gradient(135deg,var(--accent3),#2cc896);color:#0a1a14;border:none;border-radius:16px;padding:14px 48px;font-family:'Outfit',sans-serif;font-weight:800;font-size:1rem;cursor:pointer;box-shadow:0 6px 24px rgba(69,229,176,.35);transition:all .2s}
+.done-btn:hover{transform:translateY(-3px);box-shadow:0 10px 30px rgba(69,229,176,.5)}
+
+/* ── TEACHER ── */
+.t-header{width:100%;display:flex;align-items:center;gap:12px;margin-bottom:20px}
+.t-title{font-size:1.2rem;font-weight:800;background:linear-gradient(135deg,var(--accent2),var(--accent4));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.t-summary{margin-left:auto;text-align:right}
+.t-summary-num{font-size:1.2rem;font-weight:900;color:var(--accent3)}
+.t-summary-label{font-size:.65rem;color:var(--muted);font-weight:600}
+.t-search{width:100%;padding:12px 16px;border-radius:12px;border:1.5px solid var(--border);background:var(--surface);font-family:'Outfit',sans-serif;font-size:.95rem;font-weight:500;color:var(--text);outline:none;margin-bottom:14px;transition:border-color .2s}
+.t-search:focus{border-color:var(--accent)}
+.t-search::placeholder{color:var(--muted)}
+.students-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;width:100%}
+@media(max-width:500px){.students-grid{grid-template-columns:1fr}}
+.s-card{background:var(--surface);border:1.5px solid var(--border);border-radius:var(--r2);padding:14px;cursor:pointer;transition:all .18s}
+.s-card:hover{border-color:rgba(124,106,255,.5);transform:translateY(-3px);box-shadow:0 8px 24px rgba(124,106,255,.18)}
+.s-top{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.s-avatar{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.82rem;color:white;flex-shrink:0}
+.s-name{font-weight:700;font-size:.9rem}
+.s-sub{font-size:.72rem;color:var(--muted);margin-top:1px}
+.s-pill{font-size:.65rem;font-weight:700;padding:3px 9px;border-radius:20px;display:inline-flex;align-items:center;gap:3px;margin-bottom:8px}
+.pill-yes{background:rgba(69,229,176,.13);color:var(--accent3)}
+.pill-no{background:rgba(107,112,153,.1);color:var(--muted)}
+.s-sparkline{display:flex;gap:3px;height:5px;border-radius:4px;overflow:hidden}
+.spark-seg{flex:1;border-radius:3px}
+.t-tab{
+  flex:1;padding:9px;border-radius:10px;border:1.5px solid var(--border);
+  background:var(--surface);font-family:'Outfit',sans-serif;font-weight:700;
+  font-size:.78rem;color:var(--muted2);cursor:pointer;transition:all .15s;
+}
+.t-tab.active{background:var(--accent);border-color:var(--accent);color:white}
+.students-list-full{display:flex;flex-direction:column;gap:8px;width:100%}
+.s-row{
+  display:flex;align-items:center;gap:12px;
+  background:var(--surface);border:1.5px solid var(--border);
+  border-radius:16px;padding:13px 16px;cursor:pointer;
+  transition:all .18s;
+}
+.s-row:hover{border-color:rgba(124,106,255,.5);transform:translateX(4px)}
+.s-row.done{border-left:3px solid var(--accent3)}
+.s-row.todo{border-left:3px solid var(--border)}
+.s-row-avatar{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.8rem;color:white;flex-shrink:0}
+.s-row-name{font-weight:700;font-size:.92rem;flex:1}
+.s-row-right{display:flex;flex-direction:column;align-items:flex-end;gap:3px}
+.s-row-rating{font-size:.72rem;font-weight:700;padding:3px 10px;border-radius:20px}
+.s-row-note{font-size:.68rem;color:var(--muted);max-width:140px;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.det-meta{font-size:.78rem;color:var(--muted2);font-weight:500}
+.history-entry{width:100%;background:var(--surface);border:1.5px solid var(--border);border-radius:var(--r2);padding:16px;margin-bottom:10px}
+.he-date{font-size:.65rem;font-weight:800;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:10px}
+.he-row{display:flex;align-items:center;gap:10px}
+.he-chip{font-size:.72rem;font-weight:700;padding:4px 12px;border-radius:20px}
+.hc1{background:rgba(255,75,75,.13);color:#ff4b4b}
+.hc2{background:rgba(255,160,0,.13);color:#ffa000}
+.hc3{background:rgba(255,209,102,.13);color:var(--accent4)}
+.hc4{background:rgba(69,229,176,.13);color:var(--accent3)}
+.modal-ov{position:fixed;inset:0;background:rgba(0,0,0,.65);backdrop-filter:blur(10px);z-index:200;display:flex;align-items:center;justify-content:center}
+.modal-ov.hidden{display:none}
+.modal{background:var(--surface);border:1.5px solid var(--border);border-radius:var(--r2);padding:28px;width:310px;box-shadow:0 20px 60px rgba(0,0,0,.6);display:flex;flex-direction:column;align-items:center;gap:14px}
+.modal h3{font-size:1.25rem;font-weight:800;background:linear-gradient(135deg,var(--accent2),var(--accent4));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.modal p{color:var(--muted2);font-size:.85rem;text-align:center;line-height:1.5}
+.modal input{width:100%;padding:12px 14px;border-radius:12px;border:1.5px solid var(--border);background:var(--bg);font-family:'Outfit',sans-serif;font-size:1rem;font-weight:600;color:var(--text);outline:none;transition:border-color .2s}
+.modal input:focus{border-color:var(--accent)}
+.m-btns{display:flex;gap:10px;width:100%}
+.m-btns button{flex:1;padding:12px;border-radius:12px;border:none;font-family:'Outfit',sans-serif;font-weight:700;font-size:.9rem;cursor:pointer;transition:all .15s}
+.m-cancel{background:var(--surface2);color:var(--muted2)}
+.m-go{background:linear-gradient(135deg,var(--accent),#5a4fd6);color:white;box-shadow:0 4px 16px rgba(124,106,255,.4)}
+.m-go:hover{transform:translateY(-2px)}
+.m-err{color:var(--accent2);font-size:.8rem;font-weight:700;display:none}
+.loading{color:var(--muted);font-weight:600;font-size:.9rem;text-align:center;padding:32px;grid-column:1/-1}
+#confetti-canvas{position:fixed;inset:0;z-index:300;pointer-events:none}
+::-webkit-scrollbar{width:5px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+</style>
+</head>
+<body>
+
+<canvas id="confetti-canvas"></canvas>
+
+<div class="modal-ov hidden" id="teacher-modal">
+  <div class="modal">
+    <h3>🔐 Teacher Access</h3>
+    <p>Enter your password to view all student check-ins</p>
+    <input type="password" id="t-pw" placeholder="Password">
+    <div class="m-err" id="t-pw-err">Incorrect password — try again</div>
+    <div class="m-btns">
+      <button class="m-cancel" onclick="closeModal()">Cancel</button>
+      <button class="m-go" onclick="checkTPw()">Enter →</button>
+    </div>
+  </div>
+</div>
+
+<!-- PIN -->
+<div class="screen active" id="screen-pin">
+  <div class="logo-wrap">
+    <span class="logo-icon">🌟</span>
+    <div class="logo-text">Goal Check-In</div>
+    <div class="logo-sub">Enter your 4-digit code to begin</div>
+  </div>
+  <div class="pin-dots">
+    <div class="pin-dot" id="pd0"></div>
+    <div class="pin-dot" id="pd1"></div>
+    <div class="pin-dot" id="pd2"></div>
+    <div class="pin-dot" id="pd3"></div>
+  </div>
+  <div class="numpad">
+    <button class="nk" onclick="kp('1')">1<span class="nk-sub"></span></button>
+    <button class="nk" onclick="kp('2')">2<span class="nk-sub">ABC</span></button>
+    <button class="nk" onclick="kp('3')">3<span class="nk-sub">DEF</span></button>
+    <button class="nk" onclick="kp('4')">4<span class="nk-sub">GHI</span></button>
+    <button class="nk" onclick="kp('5')">5<span class="nk-sub">JKL</span></button>
+    <button class="nk" onclick="kp('6')">6<span class="nk-sub">MNO</span></button>
+    <button class="nk" onclick="kp('7')">7<span class="nk-sub">PQRS</span></button>
+    <button class="nk" onclick="kp('8')">8<span class="nk-sub">TUV</span></button>
+    <button class="nk" onclick="kp('9')">9<span class="nk-sub">WXYZ</span></button>
+    <button class="nk del" onclick="kdel()">⌫</button>
+    <button class="nk" onclick="kp('0')">0</button>
+    <button class="nk go" onclick="ksub()">→</button>
+  </div>
+  <div class="pin-error" id="pin-err"></div>
+  <button class="teacher-btn" onclick="openModal()">👩‍🏫 Teacher View</button>
+</div>
+
+<!-- DASHBOARD -->
+<div class="screen" id="screen-dash">
+  <div class="dash-header">
+    <button class="back-btn" onclick="goPin()">←</button>
+    <div class="student-greeting">Hey, <span id="dash-name">—</span>! 👋</div>
+    <div style="font-size:.72rem;color:var(--muted);font-weight:500;text-align:right" id="dash-date"></div>
+  </div>
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-label">🔥 Streak</div>
+      <div class="stat-val sv-streak" id="stat-streak">—</div>
+      <div class="stat-sub">days in a row</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">📋 Check-ins</div>
+      <div class="stat-val sv-count" id="stat-count">—</div>
+      <div class="stat-sub">total sessions</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">⭐ Average</div>
+      <div class="stat-val sv-avg" id="stat-avg">—</div>
+      <div class="stat-sub">goal rating</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">📅 Today</div>
+      <div class="stat-val sv-today" id="stat-today">—</div>
+      <div class="stat-sub" id="stat-today-sub">status</div>
+    </div>
+  </div>
+  <div class="chart-wrap">
+    <div class="chart-title">📈 My Progress</div>
+    <div class="chart-canvas-wrap">
+      <canvas id="progress-chart" style="width:100%;height:90px"></canvas>
+    </div>
+    <div class="chart-empty" id="chart-empty">Check in a few more times to see your progress graph!</div>
+  </div>
+  <div id="goal-section"></div>
+  <button class="submit-btn" id="submit-btn" onclick="doSubmit()" disabled>Submit Check-In ✓</button>
+  <button onclick="showGoalHistory()" style="width:100%;margin-top:8px;padding:12px;border-radius:14px;border:1.5px solid var(--border);background:var(--surface);color:var(--muted2);font-family:'Outfit',sans-serif;font-weight:700;font-size:.85rem;cursor:pointer;transition:all .2s" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">📅 My Goal History</button>
+</div>
+
+<!-- SUCCESS -->
+<div class="screen" id="screen-success">
+  <span class="suc-icon">🎊</span>
+  <div class="suc-h" id="suc-h">You did it!</div>
+  <p class="suc-p" id="suc-p">Your check-in has been saved.<br>Keep up the amazing work!</p>
+  <button class="done-btn" onclick="goPin()">Done ✓</button>
+</div>
+
+<!-- TEACHER DASHBOARD -->
+<div class="screen" id="screen-teacher">
+  <div class="t-header">
+    <button class="back-btn" onclick="goPin()">←</button>
+    <div>
+      <div class="t-title">👩‍🏫 Teacher Dashboard</div>
+      <div style="font-size:.7rem;color:var(--muted);font-weight:500" id="t-date"></div>
+    </div>
+    <button onclick="loadTeacher()" style="margin-left:auto;background:none;border:1.5px solid var(--border);border-radius:10px;padding:6px 12px;color:var(--muted2);font-family:'Outfit',sans-serif;font-size:.75rem;font-weight:700;cursor:pointer" title="Refresh">↻ Refresh</button>
+  </div>
+
+  <!-- Today summary bar -->
+  <div style="width:100%;background:var(--surface);border:1.5px solid var(--border);border-radius:var(--r2);padding:18px;margin-bottom:16px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+      <div style="font-size:.65rem;font-weight:800;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted)">Today's Check-Ins</div>
+      <div style="font-size:.8rem;font-weight:700;color:var(--accent3)" id="t-progress-label">— / 18</div>
+    </div>
+    <div style="width:100%;height:8px;background:var(--surface2);border-radius:8px;overflow:hidden;margin-bottom:14px">
+      <div id="t-progress-bar" style="height:100%;background:linear-gradient(90deg,var(--accent),var(--accent3));border-radius:8px;transition:width .6s ease;width:0%"></div>
+    </div>
+    <div style="display:flex;gap:16px">
+      <div style="flex:1;text-align:center">
+        <div style="font-size:1.6rem;font-weight:900;color:var(--accent3)" id="t-yes-count">—</div>
+        <div style="font-size:.68rem;font-weight:700;color:var(--muted)">Checked In</div>
+      </div>
+      <div style="width:1px;background:var(--border)"></div>
+      <div style="flex:1;text-align:center">
+        <div style="font-size:1.6rem;font-weight:900;color:var(--accent2)" id="t-no-count">—</div>
+        <div style="font-size:.68rem;font-weight:700;color:var(--muted)">Not Yet</div>
+      </div>
+      <div style="width:1px;background:var(--border)"></div>
+      <div style="flex:1;text-align:center">
+        <div style="font-size:1.6rem;font-weight:900;color:var(--accent4)" id="t-avg-today">—</div>
+        <div style="font-size:.68rem;font-weight:700;color:var(--muted)">Class Avg</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div style="width:100%;display:flex;gap:8px;margin-bottom:14px">
+    <button class="t-tab active" id="tab-all" onclick="setTab('all')">All Students</button>
+    <button class="t-tab" id="tab-done" onclick="setTab('done')">✓ Done</button>
+    <button class="t-tab" id="tab-todo" onclick="setTab('todo')">⏳ Not Yet</button>
+  </div>
+
+  <input class="t-search" type="text" placeholder="🔍 Search students…" oninput="filterStu(this.value)" id="t-search-input">
+  <div class="students-list-full" id="students-grid"><div class="loading">Loading…</div></div>
+</div>
+
+<!-- TEACHER DETAIL -->
+<div class="screen" id="screen-teacher-detail">
+  <div class="dash-header">
+    <button class="back-btn" onclick="showScreen('screen-teacher')">←</button>
+    <div style="flex:1">
+      <div class="det-name-big" id="det-name"></div>
+      <div class="det-meta" id="det-meta"></div>
+    </div>
+    <div id="det-today-badge"></div>
+  </div>
+
+  <!-- Student stats row -->
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;width:100%;margin-bottom:10px">
+    <div class="stat-card" style="text-align:center">
+      <div class="stat-label">Check-ins</div>
+      <div class="stat-val sv-count" id="det-count" style="font-size:1.5rem">—</div>
+    </div>
+    <div class="stat-card" style="text-align:center">
+      <div class="stat-label">Average</div>
+      <div class="stat-val sv-avg" id="det-avg" style="font-size:1.5rem">—</div>
+    </div>
+    <div class="stat-card" style="text-align:center">
+      <div class="stat-label">Streak 🔥</div>
+      <div class="stat-val sv-streak" id="det-streak" style="font-size:1.5rem">—</div>
+    </div>
+  </div>
+  <!-- Streak override -->
+  <div id="streak-override-box" style="width:100%;background:var(--surface);border:1.5px solid var(--border);border-radius:14px;padding:12px 16px;margin-bottom:10px;display:flex;align-items:center;gap:10px">
+    <span style="font-size:.72rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:1px;flex:1">Override Streak</span>
+    <input type="number" id="streak-override-input" min="0" placeholder="—"
+      style="width:70px;background:var(--bg);border:1.5px solid var(--border);border-radius:8px;padding:6px 10px;color:var(--text);font-family:'Outfit',sans-serif;font-size:.9rem;font-weight:700;text-align:center;outline:none"
+      onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'"
+    />
+    <button onclick="saveStreakOverride()" style="background:var(--accent);color:#fff;border:none;border-radius:8px;padding:7px 14px;font-family:'Outfit',sans-serif;font-weight:700;font-size:.8rem;cursor:pointer">Save</button>
+    <span id="streak-override-msg" style="font-size:.72rem;color:var(--accent3);font-weight:700;min-width:40px"></span>
+  </div>
+
+  <div class="chart-wrap">
+    <div class="chart-title">📈 Progress Over Time</div>
+    <div class="chart-canvas-wrap">
+      <canvas id="detail-chart" style="width:100%;height:110px"></canvas>
+    </div>
+    <div class="chart-empty" id="detail-chart-empty">No check-ins yet — check back soon!</div>
+  </div>
+
+  <!-- Goal management -->
+  <div style="width:100%;background:var(--surface);border:1.5px solid var(--border);border-radius:14px;padding:14px;margin-bottom:14px">
+    <div style="font-size:.65rem;font-weight:800;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:10px">Goal Management</div>
+    <div id="det-current-goal" style="font-size:.88rem;color:var(--text);margin-bottom:10px;padding:8px 10px;background:var(--surface2);border-radius:8px;line-height:1.5"></div>
+    <div style="display:flex;gap:8px;margin-bottom:8px">
+      <button onclick="markGoalMastered()" style="flex:1;background:rgba(69,229,176,.15);border:1.5px solid var(--accent3);border-radius:8px;padding:8px;color:var(--accent3);font-family:'Outfit',sans-serif;font-weight:700;font-size:.78rem;cursor:pointer">🏆 Mark Mastered</button>
+      <button onclick="showNewGoalInput()" style="flex:1;background:rgba(124,106,255,.15);border:1.5px solid var(--accent);border-radius:8px;padding:8px;color:var(--accent);font-family:'Outfit',sans-serif;font-weight:700;font-size:.78rem;cursor:pointer">+ Add / Update Goal</button>
+    </div>
+    <div id="new-goal-input-area" style="display:none">
+      <textarea id="new-goal-text" placeholder="Type new goal here…" rows="2"
+        style="width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:8px;padding:10px;color:var(--text);font-family:'Outfit',sans-serif;font-size:.88rem;resize:none;outline:none;margin-bottom:6px"
+        onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'"></textarea>
+      <input id="new-goal-area" placeholder="Goal Area (e.g. Focus, Organization)" 
+        style="width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--text);font-family:'Outfit',sans-serif;font-size:.82rem;outline:none;margin-bottom:6px"
+        onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'"/>
+      <div style="display:flex;gap:8px">
+        <button onclick="saveNewGoal()" style="flex:1;background:var(--accent);color:#fff;border:none;border-radius:8px;padding:9px;font-family:'Outfit',sans-serif;font-weight:700;font-size:.82rem;cursor:pointer">Save Goal</button>
+        <button onclick="document.getElementById('new-goal-input-area').style.display='none'" style="background:var(--surface2);border:1.5px solid var(--border);color:var(--muted2);border-radius:8px;padding:9px 14px;font-family:'Outfit',sans-serif;font-weight:700;font-size:.82rem;cursor:pointer">Cancel</button>
+      </div>
+    </div>
+    <span id="goal-save-msg" style="font-size:.72rem;color:var(--accent3);font-weight:700;display:none;margin-top:4px"></span>
+  </div>
+
+  <div style="font-size:.65rem;font-weight:800;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:10px;width:100%">Check-In History</div>
+  <div id="detail-history" style="width:100%"></div>
+</div>
+
+<script>
+const TOKEN  = 'patdfJBFQVg5XN3LJ.04e6fd40ac74ab54a9d705d2736462a9d5d1494306a74ddbe7a6a317cf17175c';
+const BASE   = 'app3QC7PF5zYG1mLH';
+const T_PASS = 'resource2025';
+
+// ── Exact Airtable names ──────────────────────────────────────────
+const TBL_CHECKINS  = 'Check Ins';
+const TBL_STUDENTS  = 'Students';
+const F_DATE         = 'Date';
+const F_STUDENT_ID   = 'Student ID';
+const F_STUDENT_NAME = 'Student Name';
+const F_RATING       = 'Rating';
+const F_NOTE         = 'Note';
+const F_NAME         = 'Name';
+const F_GOAL         = 'Goal';
+const F_GOAL_AREA    = 'Goal Area';
+const F_STU_ID       = 'Student ID'; // Students table also has Student ID
+
+const RATING_EMO  = ['😟','😕','😐','😊'];
+const RATING_LBLS = ['Not Yet','Getting There','Almost!','Got It! 🎉'];
+const CHIP_CLS    = ['hc1','hc2','hc3','hc4'];
+const AV_COLORS   = ['#7c6aff','#ff6a9e','#45e5b0','#ffd166','#ff7b5e','#5ec4ff','#b06aff','#ff9f45','#6affcb','#ff6a6a','#a8ff6a','#6a9fff','#ff6ae8','#6afff0','#ffa86a','#8dff6a','#6a6aff','#ff6ab0'];
+
+// ── Students loaded LIVE from Airtable ───────────────────────────
+// To change a PIN or add a student: edit the Students table in Airtable.
+// No file changes or re-uploads needed.
+let STUDENTS = [];
+let studentsLoaded = false;
+
+async function initStudents() {
+  try {
+    const recs = await atAll(TBL_STUDENTS);
+    STUDENTS = recs
+      .filter(r => r.fields[F_NAME] && r.fields[F_STU_ID])
+      .map(r => ({ name: r.fields[F_NAME], pin: String(r.fields[F_STU_ID]) }));
+    studentsLoaded = true;
+    // Clear any loading message
+    const err = document.getElementById('pin-err');
+    if (err && err.textContent.includes('Loading')) err.textContent = '';
+  } catch(e) {
+    console.error('Could not load students from Airtable:', e);
+    const err = document.getElementById('pin-err');
+    if (err) err.textContent = '⚠️ Connection error — please refresh the page';
+  }
+}
+initStudents();
+
+// ── Airtable helpers ──────────────────────────────────────────────
+async function atAll(table, formula='') {
+  let records = [], offset;
+  do {
+    let qs = '?pageSize=100&';
+    if (formula) qs += `filterByFormula=${encodeURIComponent(formula)}&`;
+    if (offset)  qs += `offset=${offset}&`;
+    const r = await fetch(
+      `https://api.airtable.com/v0/${BASE}/${encodeURIComponent(table)}${qs}`,
+      { headers: { Authorization: `Bearer ${TOKEN}` } }
+    );
+    const d = await r.json();
+    if (d.error) throw new Error(d.error.message);
+    records = records.concat(d.records || []);
+    offset = d.offset;
+  } while (offset);
+  return records;
+}
+
+async function atCreate(table, fields) {
+  const r = await fetch(
+    `https://api.airtable.com/v0/${BASE}/${encodeURIComponent(table)}`,
+    {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fields })
+    }
+  );
+  return r.json();
+}
+
+// ── Routing ───────────────────────────────────────────────────────
+let curScreen = 'screen-pin';
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  curScreen = id;
+  window.scrollTo(0, 0);
+}
+function goPin() { pinReset(); showScreen('screen-pin'); }
+
+// ── PIN ───────────────────────────────────────────────────────────
+let pin = '';
+function kp(d) { if (pin.length >= 4) return; pin += d; dots(); if (pin.length === 4) setTimeout(ksub, 140); }
+function kdel() { pin = pin.slice(0, -1); dots(); document.getElementById('pin-err').textContent = ''; }
+function pinReset() { pin = ''; dots(); document.getElementById('pin-err').textContent = ''; }
+function dots() { for (let i = 0; i < 4; i++) document.getElementById(`pd${i}`).classList.toggle('filled', i < pin.length); }
+
+async function ksub() {
+  if (pin.length < 4) return;
+  if (!studentsLoaded) {
+    document.getElementById('pin-err').textContent = '⏳ Loading — try again in a moment';
+    pinReset(); return;
+  }
+  const s = STUDENTS.find(x => x.pin === pin);
+  if (!s) {
+    document.getElementById('pin-err').textContent = '❌ Incorrect code — try again';
+    pinReset(); return;
+  }
+  currentStudent = s;
+  await loadDash();
+}
+
+document.addEventListener('keydown', e => {
+  if (curScreen !== 'screen-pin') return;
+  if (e.key >= '0' && e.key <= '9') kp(e.key);
+  else if (e.key === 'Backspace') kdel();
+  else if (e.key === 'Enter') ksub();
+});
+
+// ── Dashboard ─────────────────────────────────────────────────────
+let currentStudent = null, currentRating = null;
+
+async function loadDash() {
+  showScreen('screen-dash');
+  currentRating = null;
+  document.getElementById('submit-btn').disabled = true;
+  document.getElementById('dash-name').textContent = currentStudent.name;
+  document.getElementById('dash-date').textContent = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+  ['stat-streak','stat-count','stat-avg','stat-today'].forEach(id => document.getElementById(id).textContent = '…');
+
+  const today = new Date().toISOString().split('T')[0];
+
+  try {
+    // All check-ins for this student, identified by their PIN in Student ID field
+    const checkins = await atAll(TBL_CHECKINS, `{${F_STUDENT_ID}}="${currentStudent.pin}"`);
+    const sorted = [...checkins].sort((a, b) => new Date(a.fields[F_DATE]) - new Date(b.fields[F_DATE]));
+
+    // Count
+    document.getElementById('stat-count').textContent = checkins.length;
+
+    // Today status
+    const checkedToday = checkins.some(c => c.fields[F_DATE] === today);
+    document.getElementById('stat-today').textContent = checkedToday ? '✓' : '—';
+    document.getElementById('stat-today-sub').textContent = checkedToday ? 'done today!' : 'not yet today';
+
+    // Block duplicate check-ins — already done today
+    if (checkedToday) {
+      const todayEntry = checkins.find(c => c.fields[F_DATE] === today);
+      const r = todayEntry?.fields[F_RATING];
+      document.getElementById('goal-section').innerHTML = `
+        <div style="background:rgba(69,229,176,.1);border:1.5px solid var(--accent3);border-radius:var(--r2);padding:20px;margin-bottom:14px;text-align:center">
+          <div style="font-size:2rem;margin-bottom:8px">✅</div>
+          <div style="font-size:1rem;font-weight:800;color:var(--accent3);margin-bottom:6px">You already checked in today!</div>
+          <div style="color:var(--muted2);font-size:.85rem;font-weight:500">
+            ${r ? 'Rating: ' + ['😟 Not Yet','😕 Getting There','😐 Almost!','😊 Got It! 🎉'][r-1] : 'Check-in saved.'}
+            <br>Come back tomorrow!
+          </div>
+        </div>`;
+      document.getElementById('submit-btn').style.display = 'none';
+      return;
+    }
+
+    // Average
+    const ratings = checkins.map(c => c.fields[F_RATING]).filter(v => typeof v === 'number');
+    document.getElementById('stat-avg').textContent = ratings.length
+      ? (ratings.reduce((a, b) => a + b, 0) / ratings.length).toFixed(1) : '—';
+
+    // Streak — school days only (Mon–Fri), weekends don't count or break it
+    const streak = calcSchoolStreak(checkins, today);
+    document.getElementById('stat-streak').textContent = streak;
+
+    // Chart
+    drawChart('progress-chart', 'chart-empty', sorted);
+
+    // Fetch student's goal from Students table using Student ID (PIN)
+    const stuRecs = await atAll(TBL_STUDENTS, `{Student ID}="${currentStudent.pin}"`);
+    buildGoalCard(stuRecs.length ? stuRecs[0].fields : null);
+
+  } catch (err) {
+    console.error(err);
+    buildGoalCard(null);
+  }
+}
+
+function buildGoalCard(fields) {
+  const section  = document.getElementById('goal-section');
+  const goal     = fields?.[F_GOAL]      || '';
+  const goalArea = fields?.[F_GOAL_AREA] || '';
+
+  if (!goal) {
+    section.innerHTML = `
+      <div style="background:var(--surface);border:1.5px solid var(--border);border-radius:var(--r2);padding:20px;margin-bottom:14px;text-align:center">
+        <div style="font-size:1.5rem;margin-bottom:8px">🎯</div>
+        <div style="color:var(--muted2);font-size:.88rem;line-height:1.6;font-weight:500">
+          No goal found yet.<br>
+          <span style="color:var(--muted);font-size:.78rem">Add a <strong style="color:var(--accent)">Goal</strong> column to the Students table,<br>then add this student's goal text.</span>
+        </div>
+      </div>`;
+    document.getElementById('submit-btn').disabled = false;
+    return;
+  }
+
+  section.innerHTML = `
+    <div class="goal-card">
+      ${goalArea ? `<div class="goal-area-tag">${goalArea}</div>` : ''}
+      <div class="goal-text">${goal}</div>
+      <div class="rating-prompt">How did I do today?</div>
+      <div class="rating-row" id="rating-row">
+        ${[1,2,3,4].map(v => `
+          <button class="rb" data-v="${v}" onclick="rate(${v})">
+            <span class="ri">${RATING_EMO[v-1]}</span>
+            <span class="rl">${RATING_LBLS[v-1]}</span>
+          </button>`).join('')}
+      </div>
+      <div style="margin-top:14px">
+        <div style="font-size:.68rem;font-weight:800;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:8px">💬 Why did you get that rating?</div>
+        <textarea id="student-note" placeholder="Explain how you did today…" rows="3" oninput="checkReady()" style="width:100%;background:var(--surface2);border:1.5px solid var(--border);border-radius:12px;padding:12px 14px;font-family:'Outfit',sans-serif;font-size:.9rem;font-weight:500;color:var(--text);outline:none;resize:none;transition:border-color .2s;line-height:1.5" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'"></textarea>
+      </div>
+    </div>`;
+}
+
+function rate(val) {
+  currentRating = val;
+  document.querySelectorAll('#rating-row .rb').forEach(b => {
+    b.className = 'rb';
+    if (parseInt(b.dataset.v) === val) b.classList.add(`s${val}`);
+  });
+  checkReady();
+}
+
+function checkReady() {
+  const note = document.getElementById('student-note');
+  const hasNote = note && note.value.trim().length > 0;
+  document.getElementById('submit-btn').disabled = !(currentRating !== null && hasNote);
+}
+
+async function doSubmit() {
+  const btn = document.getElementById('submit-btn');
+  btn.disabled = true;
+  btn.textContent = 'Saving… ⏳';
+  try {
+    const today = new Date().toISOString().split('T')[0];
+    const fields = {
+      [F_DATE]:         today,
+      [F_STUDENT_ID]:   currentStudent.pin,
+      [F_STUDENT_NAME]: currentStudent.name,
+      'Name':           currentStudent.name,
+    };
+    if (currentRating !== null) fields[F_RATING] = currentRating;
+    const note = document.getElementById('student-note');
+    if (note && note.value.trim()) fields[F_NOTE] = note.value.trim();
+
+    await atCreate(TBL_CHECKINS, fields);
+
+    // ── Auto-award points to reward bank ─────────────────────────
+    try {
+      const _TOK = 'patdfJBFQVg5XN3LJ.04e6fd40ac74ab54a9d705d2736462a9d5d1494306a74ddbe7a6a317cf17175c';
+      const _B   = 'app3QC7PF5zYG1mLH';
+      const _PTS = 20;
+      const _h   = { Authorization: 'Bearer ' + _TOK, 'Content-Type': 'application/json' };
+      const _sr  = await fetch(
+        'https://api.airtable.com/v0/' + _B + '/Students?filterByFormula=' + encodeURIComponent('{Student ID}="' + currentStudent.pin + '"'),
+        { headers: _h }
+      );
+      const _sd = await _sr.json();
+      if (_sd.records && _sd.records.length > 0) {
+        const _rec = _sd.records[0];
+        await fetch('https://api.airtable.com/v0/' + _B + '/Students/' + _rec.id, {
+          method: 'PATCH', headers: _h,
+          body: JSON.stringify({ fields: {
+            'Points':             (_rec.fields['Points'] || 0) + _PTS,
+            'Total Sessions':     (_rec.fields['Total Sessions'] || 0) + 1,
+            'Sessions This Week': (_rec.fields['Sessions This Week'] || 0) + 1,
+          }})
+        });
+        await fetch('https://api.airtable.com/v0/' + _B + '/Transactions', {
+          method: 'POST', headers: _h,
+          body: JSON.stringify({ fields: {
+            'Student ID':     currentStudent.pin,
+            'Student Name':   currentStudent.name,
+            'Points Awarded': _PTS,
+            'Type':           'Check-In',
+            'Rating':         currentRating ? String(currentRating) : '',
+            'Note':           (document.getElementById('student-note') || {}).value || '',
+            'Date':           new Date().toISOString().split('T')[0],
+          }})
+        });
+      }
+    } catch(_e) { console.warn('Points sync failed:', _e); }
+    // ─────────────────────────────────────────────────────────────
+
+    fireConfetti();
+    document.getElementById('suc-h').textContent = `${currentStudent.name}, you're a star! 🌟`;
+    const rLabel = currentRating !== null
+      ? `Today's rating: ${currentRating}/4 — ${RATING_EMO[currentRating-1]} ${RATING_LBLS[currentRating-1]}`
+      : 'Check-in saved!';
+    document.getElementById('suc-p').innerHTML = `${rLabel}<br>Keep crushing those goals — see you next time!`;
+    showScreen('screen-success');
+  } catch (err) {
+    console.error(err);
+    btn.disabled = false;
+    btn.textContent = 'Submit Check-In ✓';
+    alert('Error saving. Check your connection and try again.');
+  }
+}
+
+// ── Chart ─────────────────────────────────────────────────────────
+function drawChart(canvasId, emptyId, checkins) {
+  const canvas = document.getElementById(canvasId);
+  const empty  = document.getElementById(emptyId);
+  if (!canvas) return;
+
+  const data = checkins
+    .filter(c => c.fields[F_DATE] && typeof c.fields[F_RATING] === 'number')
+    .slice(-14);
+
+  if (data.length < 2) {
+    canvas.style.display = 'none';
+    empty.style.display = 'block';
+    return;
+  }
+  canvas.style.display = 'block';
+  empty.style.display = 'none';
+
+  const W = canvas.offsetWidth || 380, H = 90;
+  canvas.width = W * 2; canvas.height = H * 2;
+  canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
+  const ctx = canvas.getContext('2d');
+  ctx.scale(2, 2);
+
+  const P = { l: 18, r: 10, t: 10, b: 22 };
+  const cw = W - P.l - P.r, ch = H - P.t - P.b;
+
+  // Grid
+  ctx.strokeStyle = 'rgba(42,45,72,.9)'; ctx.lineWidth = 1;
+  [1,2,3,4].forEach(v => {
+    const y = P.t + ch - ((v / 4) * ch);
+    ctx.beginPath(); ctx.moveTo(P.l, y); ctx.lineTo(P.l + cw, y); ctx.stroke();
+    ctx.fillStyle = 'rgba(107,112,153,.55)';
+    ctx.font = '600 7px Outfit'; ctx.textAlign = 'right';
+    ctx.fillText(v, P.l - 3, y + 2.5);
+  });
+
+  const pts = data.map((d, i) => ({
+    x: P.l + (i / (data.length - 1)) * cw,
+    y: P.t + ch - ((d.fields[F_RATING] / 4) * ch),
+    date: d.fields[F_DATE]
+  }));
+
+  // Gradient fill
+  const grd = ctx.createLinearGradient(0, P.t, 0, P.t + ch);
+  grd.addColorStop(0, 'rgba(124,106,255,.22)');
+  grd.addColorStop(1, 'rgba(124,106,255,0)');
+  ctx.beginPath();
+  pts.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
+  ctx.lineTo(pts[pts.length-1].x, P.t + ch);
+  ctx.lineTo(pts[0].x, P.t + ch);
+  ctx.closePath();
+  ctx.fillStyle = grd; ctx.fill();
+
+  // Line
+  ctx.beginPath();
+  pts.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
+  ctx.strokeStyle = '#7c6aff'; ctx.lineWidth = 2.5; ctx.lineJoin = 'round'; ctx.stroke();
+
+  // Dots
+  pts.forEach(p => {
+    ctx.beginPath(); ctx.arc(p.x, p.y, 3.5, 0, Math.PI * 2);
+    ctx.fillStyle = '#0d0f1a'; ctx.fill();
+    ctx.strokeStyle = '#7c6aff'; ctx.lineWidth = 2; ctx.stroke();
+  });
+
+  // Date labels
+  ctx.fillStyle = 'rgba(107,112,153,.75)'; ctx.font = '600 7.5px Outfit'; ctx.textAlign = 'center';
+  pts.forEach((p, i) => {
+    if (data.length <= 5 || i === 0 || i === pts.length - 1 || i % Math.ceil(pts.length / 4) === 0) {
+      const lbl = new Date(p.date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      ctx.fillText(lbl, p.x, P.t + ch + 14);
+    }
+  });
+}
+
+
+// ── School-day streak calculator ─────────────────────────────────
+// Skips Saturday (6) and Sunday (0) — weekends never break a streak
+function calcSchoolStreak(checkins, today) {
+  const checkedDates = new Set(
+    checkins.map(c => c.fields[F_DATE]).filter(Boolean)
+  );
+
+  let streak = 0;
+  // Start walking back from today (or last Friday if today is a weekend)
+  let d = new Date(today + 'T12:00:00');
+
+  // If running on a weekend, step back to last Friday to be fair
+  while (d.getDay() === 0 || d.getDay() === 6) {
+    d.setDate(d.getDate() - 1);
+  }
+
+  // Walk backwards through school days only
+  let safetyLimit = 365;
+  while (safetyLimit-- > 0) {
+    const day = d.getDay();
+    if (day === 0 || day === 6) {
+      // Skip weekend — doesn't break streak
+      d.setDate(d.getDate() - 1);
+      continue;
+    }
+    const dateStr = d.toISOString().split('T')[0];
+    if (checkedDates.has(dateStr)) {
+      streak++;
+      d.setDate(d.getDate() - 1);
+    } else if (dateStr === today) {
+      // Haven't checked in today yet — that's fine, check yesterday
+      d.setDate(d.getDate() - 1);
+    } else {
+      break; // Missed a school day — streak ends
+    }
+  }
+  return streak;
+}
+
+// ── Teacher ───────────────────────────────────────────────────────
+let tCheckins = [], curTab = 'all', tSearchQ = '';
+
+async function loadTeacher() {
+  showScreen('screen-teacher');
+  document.getElementById('t-date').textContent = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+  document.getElementById('students-grid').innerHTML = '<div class="loading">Loading…</div>';
+
+  try {
+    tCheckins = await atAll(TBL_CHECKINS);
+    updateSummary();
+    renderStu();
+  } catch (err) {
+    document.getElementById('students-grid').innerHTML = '<div class="loading">⚠️ Could not load data. Check your connection.</div>';
+  }
+}
+
+function updateSummary() {
+  const today = new Date().toISOString().split('T')[0];
+  const todayCI = tCheckins.filter(c => c.fields[F_DATE] === today);
+  const donePins = new Set(todayCI.map(c => c.fields[F_STUDENT_ID]));
+  const yes = donePins.size;
+  const no  = STUDENTS.length - yes;
+
+  document.getElementById('t-yes-count').textContent = yes;
+  document.getElementById('t-no-count').textContent  = no;
+  document.getElementById('t-progress-label').textContent = `${yes} / ${STUDENTS.length}`;
+  document.getElementById('t-progress-bar').style.width = `${(yes / STUDENTS.length) * 100}%`;
+
+  const todayRatings = todayCI.map(c => c.fields[F_RATING]).filter(v => typeof v === 'number');
+  document.getElementById('t-avg-today').textContent = todayRatings.length
+    ? (todayRatings.reduce((a,b)=>a+b,0)/todayRatings.length).toFixed(1) : '—';
+}
+
+function setTab(tab) {
+  curTab = tab;
+  document.querySelectorAll('.t-tab').forEach(b => b.classList.remove('active'));
+  document.getElementById(`tab-${tab}`).classList.add('active');
+  renderStu();
+}
+
+function filterStu(q) { tSearchQ = q; renderStu(); }
+
+function renderStu() {
+  const today = new Date().toISOString().split('T')[0];
+  const grid  = document.getElementById('students-grid');
+
+  let list = STUDENTS.filter(s => s.name.toLowerCase().includes(tSearchQ.toLowerCase()));
+
+  // Get today's check-in for each student
+  const getToday = s => tCheckins.find(c => c.fields[F_STUDENT_ID] === s.pin && c.fields[F_DATE] === today);
+
+  if (curTab === 'done') list = list.filter(s =>  getToday(s));
+  if (curTab === 'todo') list = list.filter(s => !getToday(s));
+
+  // Sort: checked in first, then alphabetical within each group
+  list.sort((a, b) => {
+    const aD = !!getToday(a), bD = !!getToday(b);
+    if (aD !== bD) return bD - aD; // done first only in 'all' tab
+    return a.name.localeCompare(b.name);
+  });
+
+  if (!list.length) { grid.innerHTML = '<div class="loading">No students found.</div>'; return; }
+
+  grid.innerHTML = list.map((s, i) => {
+    const color   = AV_COLORS[STUDENTS.indexOf(s) % AV_COLORS.length];
+    const initials = s.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+    const todayCi  = getToday(s);
+    const allCi    = tCheckins.filter(c => c.fields[F_STUDENT_ID] === s.pin);
+    const r        = todayCi?.fields[F_RATING];
+    const note     = todayCi?.fields[F_NOTE];
+    const hasR     = typeof r === 'number';
+
+    const chipCls  = hasR ? ['hc1','hc2','hc3','hc4'][r-1] : '';
+    const chipTxt  = hasR ? `${RATING_EMO[r-1]} ${r}/4` : '';
+
+    return `<div class="s-row ${todayCi?'done':'todo'}" onclick="showStuDetail('${s.pin}')">
+      <div class="s-row-avatar" style="background:${color}">${initials}</div>
+      <div class="s-row-name">${s.name}</div>
+      <div class="s-row-right">
+        ${todayCi
+          ? `<div class="s-row-rating ${chipCls}">${chipTxt}</div>
+             ${note ? `<div class="s-row-note">"${note}"</div>` : ''}`
+          : `<div style="font-size:.72rem;font-weight:700;color:var(--muted)">Not yet</div>`
+        }
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function showStuDetail(pin) {
+  const s = STUDENTS.find(x => x.pin === pin);
+  if (!s) return;
+  detailPin = pin;
+
+  const today = new Date().toISOString().split('T')[0];
+  const ci = tCheckins
+    .filter(c => c.fields[F_STUDENT_ID] === pin)
+    .sort((a,b) => new Date(b.fields[F_DATE]) - new Date(a.fields[F_DATE]));
+
+  const ratings = ci.map(c => c.fields[F_RATING]).filter(v => typeof v === 'number');
+  const avg     = ratings.length ? (ratings.reduce((a,b)=>a+b,0)/ratings.length).toFixed(1) : '—';
+
+  // Streak — school days only
+  const streak = calcSchoolStreak(ci, today);
+
+  document.getElementById('det-name').textContent    = s.name;
+  document.getElementById('det-meta').textContent    = `${s.pin} · ${ci.length} total check-in${ci.length!==1?'s':''}`;
+  document.getElementById('det-count').textContent   = ci.length;
+  document.getElementById('det-avg').textContent     = avg;
+  document.getElementById('det-streak').textContent  = streak;
+
+  // Load Airtable record for streak override + goal
+  try {
+    const stuRes = await fetch(
+      `https://api.airtable.com/v0/${BASE}/${encodeURIComponent(TBL_STUDENTS)}?filterByFormula={Student ID}="${pin}"`,
+      { headers:{ Authorization:`Bearer ${TOKEN}` } }
+    );
+    const stuData = await stuRes.json();
+    if (stuData.records && stuData.records.length > 0) {
+      const rec = stuData.records[0];
+      detailAirtableId = rec.id;
+      const override = rec.fields['Streak Override'];
+      document.getElementById('streak-override-input').value = override != null ? override : '';
+      const goalTxt = rec.fields['Goal'] || 'No goal set yet.';
+      document.getElementById('det-current-goal').textContent = goalTxt;
+      document.getElementById('new-goal-area').value = rec.fields['Goal Area'] || '';
+      // Apply override to displayed streak
+      if (override != null && override > streak) {
+        document.getElementById('det-streak').textContent = override;
+      }
+    }
+  } catch(e) { console.warn('Could not fetch student record for override:', e); }
+
+  // Today badge
+  const todayCi = ci.find(c => c.fields[F_DATE] === today);
+  const badge   = document.getElementById('det-today-badge');
+  badge.innerHTML = todayCi
+    ? `<div style="background:rgba(69,229,176,.13);color:var(--accent3);font-size:.72rem;font-weight:700;padding:5px 12px;border-radius:20px">✓ Checked in today</div>`
+    : `<div style="background:rgba(107,112,153,.1);color:var(--muted);font-size:.72rem;font-weight:700;padding:5px 12px;border-radius:20px">Not yet today</div>`;
+
+  // Chart
+  setTimeout(() => drawChart('detail-chart', 'detail-chart-empty', [...ci].reverse()), 50);
+
+  // History
+  const hist = document.getElementById('detail-history');
+  if (!ci.length) {
+    hist.innerHTML = '<div class="loading">No check-ins yet.</div>';
+  } else {
+    hist.innerHTML = ci.map(c => {
+      const cf = c.fields;
+      const ds = cf[F_DATE]
+        ? new Date(cf[F_DATE]+'T12:00:00').toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',year:'numeric'})
+        : 'Unknown date';
+      const r    = cf[F_RATING];
+      const hasR = typeof r === 'number';
+      return `<div class="history-entry">
+        <div class="he-date">${ds}</div>
+        <div class="he-row">
+          <div style="flex:1;font-size:.88rem;font-weight:600;color:var(--text)">
+            ${hasR ? `${RATING_EMO[r-1]} ${RATING_LBLS[r-1]}` : '<span style="color:var(--muted)">No rating</span>'}
+          </div>
+          ${hasR ? `<div class="he-chip ${CHIP_CLS[r-1]}">${r} / 4</div>` : ''}
+        </div>
+        ${cf[F_NOTE] ? `<div style="font-size:.82rem;color:var(--muted2);margin-top:8px;line-height:1.5;padding:8px 10px;background:var(--surface2);border-radius:10px">"${cf[F_NOTE]}"</div>` : ''}
+      </div>`;
+    }).join('');
+  }
+  showScreen('screen-teacher-detail');
+}
+
+// ── Modal ─────────────────────────────────────────────────────────
+function openModal() {
+  document.getElementById('teacher-modal').classList.remove('hidden');
+  document.getElementById('t-pw').value = '';
+  document.getElementById('t-pw-err').style.display = 'none';
+  setTimeout(() => document.getElementById('t-pw').focus(), 100);
+}
+function closeModal() { document.getElementById('teacher-modal').classList.add('hidden'); }
+function checkTPw() {
+  if (document.getElementById('t-pw').value === T_PASS) {
+    closeModal(); loadTeacher();
+  } else {
+    document.getElementById('t-pw-err').style.display = 'block';
+    document.getElementById('t-pw').value = '';
+    document.getElementById('t-pw').focus();
+  }
+}
+document.getElementById('t-pw').addEventListener('keydown', e => { if (e.key === 'Enter') checkTPw(); });
+document.getElementById('teacher-modal').addEventListener('click', e => { if (e.target === e.currentTarget) closeModal(); });
+
+// ── Confetti ──────────────────────────────────────────────────────
+function fireConfetti() {
+  const canvas = document.getElementById('confetti-canvas');
+  canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+  const ctx = canvas.getContext('2d');
+  const COLS = ['#7c6aff','#ff6a9e','#45e5b0','#ffd166','#ff7b5e','#5ec4ff','#ffffff'];
+  const pieces = Array.from({length:220}, () => ({
+    x: Math.random() * canvas.width,
+    y: -30 - Math.random() * 180,
+    r: Math.random() * 6 + 3,
+    speed: Math.random() * 3 + 1.5,
+    drift: (Math.random() - .5) * 2,
+    angle: Math.random() * Math.PI * 2,
+    spin: (Math.random() - .5) * .14,
+    color: COLS[Math.floor(Math.random() * COLS.length)],
+    shape: Math.random() > .5 ? 'circle' : 'rect',
+  }));
+  let frame = 0;
+  (function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    pieces.forEach(p => {
+      ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.angle);
+      ctx.fillStyle = p.color;
+      p.shape === 'circle'
+        ? (ctx.beginPath(), ctx.arc(0, 0, p.r, 0, Math.PI*2), ctx.fill())
+        : ctx.fillRect(-p.r, -p.r/2, p.r*2, p.r);
+      ctx.restore();
+      p.y += p.speed + frame / 55;
+      p.x += p.drift;
+      p.angle += p.spin;
+    });
+    if (++frame < 210) requestAnimationFrame(draw);
+    else ctx.clearRect(0, 0, canvas.width, canvas.height);
+  })();
+}
+</script>
+
+<!-- GOAL HISTORY -->
+<div class="screen" id="screen-goal-history">
+  <div class="dash-header">
+    <button class="back-btn" onclick="showScreen('screen-dash')">←</button>
+    <div class="student-greeting"><span id="gh-name">—</span>'s Goals</div>
+  </div>
+  <div style="font-size:.65rem;font-weight:800;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:12px;width:100%">Monthly Goal History</div>
+  <div id="goal-history-list" style="width:100%"><div class="loading">Loading…</div></div>
+</div>
+
+</body>
+</html>
